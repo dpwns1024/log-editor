@@ -175,20 +175,46 @@ var SECRET='xK9mP2qW5rT8nL4jF7vB3cZ6';
 
 // ═══ Firebase ═══
 firebase.initializeApp({apiKey:"AIzaSyCfeSRP4LNjALm1vG40qzpegQwgVyQEKbQ",authDomain:"log-editor.firebaseapp.com",projectId:"log-editor",storageBucket:"log-editor.firebasestorage.app",messagingSenderId:"281847580341",appId:"1:281847580341:web:2556c1b5ebf22bdbc860fc"});
-var db=firebase.firestore(),auth=firebase.auth(),currentUser=null;
+var db=firebase.firestore(),auth=firebase.auth(),currentUser=null,isOwner=false;
 
-// ═══ Auth ═══
+// ═══ Auth (첫 로그인 = 주인 등록) ═══
 function doLogin(){
   var provider=new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider).catch(function(e){showToast('로그인 실패: '+e.message)});
 }
 function doLogout(){
-  auth.signOut().then(function(){currentUser=null;posts=[];currentId=null;checkRoute()});
+  auth.signOut().then(function(){currentUser=null;isOwner=false;posts=[];currentId=null;checkRoute()});
+}
+function checkOwner(user){
+  // config/owner 문서에서 주인 확인
+  return db.collection('config').doc('owner').get().then(function(doc){
+    if(!doc.exists){
+      // 첫 로그인 → 이 사람이 주인
+      return db.collection('config').doc('owner').set({uid:user.uid}).then(function(){
+        isOwner=true;
+      });
+    } else {
+      isOwner = (doc.data().uid === user.uid);
+    }
+  }).catch(function(){ isOwner=false; });
 }
 auth.onAuthStateChanged(function(user){
   currentUser=user;
-  if(user){loadPostsFromServer().then(function(){checkRoute()})}
-  else{posts=[];checkRoute()}
+  if(user){
+    checkOwner(user).then(function(){
+      if(isOwner){
+        loadPostsFromServer().then(function(){checkRoute()});
+      } else {
+        // 주인이 아닌 사람 → 로그아웃 시키고 차단
+        auth.signOut();
+        showToast('접근 권한이 없습니다');
+        currentUser=null;isOwner=false;
+        checkRoute();
+      }
+    });
+  } else {
+    posts=[];isOwner=false;checkRoute();
+  }
 });
 
 // ═══ Server sync ═══
