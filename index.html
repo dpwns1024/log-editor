@@ -4,12 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>eveden archive</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <style>
-:root{--bg:#F7F6F3;--surface:#FFF;--surface-hover:#EEEDEA;--border:#E4E2DD;--border-light:#ECEAE5;--text:#1A1917;--text-secondary:#6B6960;--text-tertiary:#9E9B91;--accent:#607ca0;--accent-light:#dce4ef;--accent-hover:#4a6384;--danger:#C1121F;--danger-light:#FDE8E9;--shadow-sm:0 1px 3px rgba(26,25,23,.06);--shadow-md:0 4px 16px rgba(26,25,23,.08);--shadow-lg:0 8px 32px rgba(26,25,23,.12);--radius:10px;--radius-sm:6px;--font:'IBM Plex Sans',-apple-system,sans-serif;--mono:'IBM Plex Mono',monospace;box-sizing:border-box;padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
+:root{--bg:#F7F6F3;--surface:#FFF;--surface-hover:#EEEDEA;--border:#E4E2DD;--border-light:#ECEAE5;--text:#1A1917;--text-secondary:#6B6960;--text-tertiary:#9E9B91;--accent:#607ca0;--accent-light:#dce4ef;--accent-hover:#4a6384;--danger:#C1121F;--danger-light:#FDE8E9;--shadow-sm:0 1px 3px rgba(26,25,23,.06);--shadow-md:0 4px 16px rgba(26,25,23,.08);--shadow-lg:0 8px 32px rgba(26,25,23,.12);--radius:10px;--radius-sm:6px;--font:'Pretendard Variable',Pretendard,-apple-system,sans-serif;--mono:'IBM Plex Mono',monospace;box-sizing:border-box;padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#131518;--surface:#1a1d22;--surface-hover:#24272e;--border:#2c3039;--border-light:#22252c;--text:#e2e4e8;--text-secondary:#9398a1;--text-tertiary:#636872;--accent:#8aa3c8;--accent-light:#1e2a3a;--accent-hover:#a4bad8;--danger:#E5383B;--danger-light:#2A1516;--shadow-sm:0 1px 3px rgba(0,0,0,.25);--shadow-md:0 4px 16px rgba(0,0,0,.3);--shadow-lg:0 8px 32px rgba(0,0,0,.4)}}
 :root[data-theme="dark"]{--bg:#131518;--surface:#1a1d22;--surface-hover:#24272e;--border:#2c3039;--border-light:#22252c;--text:#e2e4e8;--text-secondary:#9398a1;--text-tertiary:#636872;--accent:#8aa3c8;--accent-light:#1e2a3a;--accent-hover:#a4bad8;--danger:#E5383B;--danger-light:#2A1516;--shadow-sm:0 1px 3px rgba(0,0,0,.25);--shadow-md:0 4px 16px rgba(0,0,0,.3);--shadow-lg:0 8px 32px rgba(0,0,0,.4)}
 *{margin:0;padding:0;box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0)}
@@ -98,7 +99,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .modal-close{margin-top:16px;width:100%;padding:10px;border:none;background:none;color:var(--text-tertiary);font-family:var(--font);font-size:13px;cursor:pointer}
 .toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 20px;border-radius:8px;font-size:13.5px;font-weight:500;opacity:0;transition:all .25s ease;z-index:200;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-@media(max-width:768px){.sidebar{position:fixed;top:0;left:0;bottom:0;z-index:50;transform:translateX(-100%);box-shadow:var(--shadow-lg)}.sidebar.open{transform:translateX(0)}.btn-menu{display:flex}.editor-wrap,.reader-wrap{padding:24px 16px 80px}.title-input,.reader-title{font-size:24px}.topbar{padding:12px 16px}.btn-save span,.btn-share span{display:none}.editor-content,.reader-content{font-weight:300}}
+@media(max-width:768px){.sidebar{position:fixed;top:0;left:0;bottom:0;z-index:50;transform:translateX(-100%);box-shadow:var(--shadow-lg)}.sidebar.open{transform:translateX(0)}.btn-menu{display:flex}.editor-wrap,.reader-wrap{padding:24px 16px 80px}.title-input,.reader-title{font-size:24px}.topbar{padding:12px 16px}.btn-save span,.btn-share span{display:none}}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:49}.sidebar-overlay.show{display:block}
 .word-count{font-size:11.5px;color:var(--text-tertiary);font-family:var(--mono)}
 </style>
