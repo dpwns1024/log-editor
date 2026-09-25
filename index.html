@@ -49,7 +49,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .title-input{width:100%;border:none;outline:none;background:transparent;font-family:var(--font);font-size:32px;font-weight:600;color:var(--text);letter-spacing:-.02em;line-height:1.3;padding:0;margin-bottom:8px}
 .title-input::placeholder{color:var(--text-tertiary)}
 .subtitle-meta{font-size:12.5px;color:var(--text-tertiary);margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border-light)}
-.toolbar{display:flex;align-items:center;gap:2px;padding:6px 8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:20px;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+.toolbar-fixed{padding:8px 24px;background:var(--bg);border-bottom:1px solid var(--border-light);flex-shrink:0;display:flex;justify-content:center;overflow-x:auto}
+.toolbar{display:flex;align-items:center;gap:2px;padding:6px 8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);flex-wrap:nowrap;z-index:10}
 .toolbar-btn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:none;background:none;border-radius:var(--radius-sm);cursor:pointer;color:var(--text-secondary);font-size:14px;transition:all .1s;font-family:var(--font);font-weight:600;position:relative}
 .toolbar-btn:hover{background:var(--surface-hover);color:var(--text)}
 .toolbar-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
@@ -139,9 +140,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           <button class="btn-share" onclick="sharePost()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>공유</span></button>
         </div>
       </div>
-      <div class="editor-wrap"><div class="editor-container">
-        <input class="title-input" id="titleInput" type="text" placeholder="제목을 입력하세요" oninput="onEdit()">
-        <div class="subtitle-meta" id="metaLine">방금 전 · 초안</div>
+      <div class="toolbar-fixed">
         <div class="toolbar">
           <button class="toolbar-btn" onclick="execCmd('bold')"><b>B</b></button><button class="toolbar-btn" onclick="execCmd('italic')"><i>I</i></button><button class="toolbar-btn" onclick="execCmd('strikeThrough')"><s>S</s></button><span class="toolbar-sep"></span>
           <div class="color-picker-wrap"><button class="color-swatch" onclick="toggleColorPicker('textColor')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20h16"/><path d="M7 16L12 4l5 12"/><path d="M9.5 11h5"/></svg><span class="color-swatch-bar" id="textColorBar" style="background:#1A1917"></span></button><div class="color-dropdown" id="textColorDropdown"><div class="color-dropdown-label">글자색</div><div class="color-grid" id="textColorGrid"></div><div class="color-custom-row"><input type="color" class="color-native-input" id="textColorNative" value="#1A1917" oninput="applyTextColor(this.value)"><input type="text" class="color-custom-input" id="textColorHex" placeholder="#607ca0" maxlength="7" onkeydown="if(event.key==='Enter')applyTextColor(this.value)"></div></div></div>
@@ -155,6 +154,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           <button class="toolbar-btn" onclick="insertLink()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
           <button class="toolbar-btn" onclick="insertImage()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button>
         </div>
+      </div>
+      <div class="editor-wrap"><div class="editor-container">
+        <input class="title-input" id="titleInput" type="text" placeholder="제목을 입력하세요" oninput="onEdit()">
+        <div class="subtitle-meta" id="metaLine">방금 전 · 초안</div>
         <div class="editor-content" id="editorContent" contenteditable="true" oninput="onEdit()"></div>
       </div></div>
     </div>
