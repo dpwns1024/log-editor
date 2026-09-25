@@ -110,8 +110,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
 /* Reader */
 .reader-wrap { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 48px 24px 80px; }
 .reader-container { width: 100%; max-width: 720px; }
-.reader-title { font-size: 32px; font-weight: 600; letter-spacing: -.02em; line-height: 1.3; margin-bottom: 12px; }
-.reader-meta { font-size: 12.5px; color: var(--text-tertiary); margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border-light); }
+.reader-title { font-size: 32px; font-weight: 600; letter-spacing: -.02em; line-height: 1.3; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border-light); -webkit-user-select: none; user-select: none; }
 .reader-content { font-size: 15.5px; line-height: 1.75; -webkit-user-select: none; user-select: none; }
 .reader-content h1 { font-size: 26px; font-weight: 600; margin: 28px 0 12px; }
 .reader-content h2 { font-size: 21px; font-weight: 600; margin: 24px 0 10px; }
@@ -345,9 +344,11 @@ var db = firebase.firestore();
 // ══════════════════════════════════════
 // Slug (제목 → URL-safe 문자열)
 // ══════════════════════════════════════
-function toSlug(title) {
-  if (!title || !title.trim()) return '';
-  return title.trim().replace(/\s+/g, '-').replace(/[^\w가-힣ㄱ-ㅎㅏ-ㅣ\-]/g, '').substring(0, 80);
+function genShareCode() {
+  var chars = 'abcdefghijkmnpqrstuvwxyz23456789';
+  var code = '';
+  for (var i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+  return code;
 }
 
 // ══════════════════════════════════════
@@ -500,12 +501,12 @@ function savePost() {
   post.title = document.getElementById('titleInput').value;
   post.content = document.getElementById('editorContent').innerHTML;
   post.updated = Date.now();
-  var slug = toSlug(post.title) || post.id;
-  post.slug = slug;
+  var shareCode = post.shareCode || genShareCode();
+  post.shareCode = shareCode;
   saveToDisk();
 
-  // Firebase 저장 (slug를 doc ID로 사용)
-  db.collection('posts').doc(slug).set({
+  // Firebase 저장 (shareCode를 doc ID로 사용)
+  db.collection('posts').doc(shareCode).set({
     title: post.title,
     content: post.content,
     created_at: post.created,
@@ -526,7 +527,7 @@ function deletePost() {
   if (!currentId) return;
   if (!confirm('이 글을 삭제할까요?')) return;
   var post = posts.find(function(p){return p.id===currentId});
-  if (post && post.slug) db.collection('posts').doc(post.slug).delete().catch(function(){});
+  if (post && post.shareCode) db.collection('posts').doc(post.shareCode).delete().catch(function(){});
   posts = posts.filter(function(p){return p.id!==currentId});
   saveToDisk(); currentId=null; showScreen('welcome'); renderSidebar(); showToast('삭제되었습니다');
 }
@@ -544,8 +545,9 @@ function sharePost() {
   if (!post) return;
   if (!post.title && !post.content) { showToast('먼저 글을 작성하고 저장하세요'); return; }
   savePost();
-  var slug = toSlug(post.title) || post.id;
-  var url = window.location.origin + window.location.pathname + '#post=' + encodeURIComponent(slug);
+  var shareCode = post.shareCode || genShareCode();
+  post.shareCode = shareCode; saveToDisk();
+  var url = window.location.origin + window.location.pathname + '#post=' + shareCode;
   document.getElementById('shareUrlInput').value = url;
   document.getElementById('shareModal').classList.add('show');
 }
@@ -569,24 +571,25 @@ function shareToSNS(platform) {
 // ══════════════════════════════════════
 // Reader
 // ══════════════════════════════════════
-function loadSharedPost(slug) {
+function loadSharedPost(code) {
   showScreen('reader');
   var body = document.getElementById('readerBody');
   body.innerHTML = '<div class="reader-loading">불러오는 중…</div>';
-  db.collection('posts').doc(decodeURIComponent(slug)).get().then(function(doc){
+  db.collection('posts').doc(code).get().then(function(doc){
     if (doc.exists) {
       var data = doc.data();
-      var date = new Date(data.updated_at||data.created_at);
-      var dateStr = date.getFullYear()+'년 '+(date.getMonth()+1)+'월 '+date.getDate()+'일';
       body.innerHTML =
         '<h1 class="reader-title">'+esc(data.title||'제목 없음')+'</h1>'
-        +'<div class="reader-meta">'+dateStr+' · '+stripTags(data.content||'').length+'자</div>'
-        +'<div class="reader-content">'+( data.content||'')+'</div>';
-      // 읽기 뷰에서 복사/드래그 차단
+        +'<div class="reader-content">'+(data.content||'')+'</div>';
       var rc = body.querySelector('.reader-content');
       if (rc) {
         rc.addEventListener('copy', function(e){e.preventDefault()});
         rc.addEventListener('dragstart', function(e){e.preventDefault()});
+      }
+      var rt = body.querySelector('.reader-title');
+      if (rt) {
+        rt.addEventListener('copy', function(e){e.preventDefault()});
+        rt.addEventListener('dragstart', function(e){e.preventDefault()});
       }
     } else {
       body.innerHTML = '<div class="reader-not-found"><h2>글을 찾을 수 없어요</h2><p>삭제되었거나 아직 저장되지 않은 글이에요.</p></div>';
