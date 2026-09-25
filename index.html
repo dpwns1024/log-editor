@@ -7,658 +7,363 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <style>
-:root {
-  --bg: #F7F6F3; --surface: #FFFFFF; --surface-hover: #EEEDEA;
-  --border: #E4E2DD; --border-light: #ECEAE5;
-  --text: #1A1917; --text-secondary: #6B6960; --text-tertiary: #9E9B91;
-  --accent: #607ca0; --accent-light: #dce4ef; --accent-hover: #4a6384;
-  --danger: #C1121F; --danger-light: #FDE8E9;
-  --shadow-sm: 0 1px 3px rgba(26,25,23,.06); --shadow-md: 0 4px 16px rgba(26,25,23,.08); --shadow-lg: 0 8px 32px rgba(26,25,23,.12);
-  --radius: 10px; --radius-sm: 6px;
-  --font: 'IBM Plex Sans', -apple-system, sans-serif; --mono: 'IBM Plex Mono', monospace;
-  box-sizing: border-box;
-  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #131518; --surface: #1a1d22; --surface-hover: #24272e;
-    --border: #2c3039; --border-light: #22252c;
-    --text: #e2e4e8; --text-secondary: #9398a1; --text-tertiary: #636872;
-    --accent: #8aa3c8; --accent-light: #1e2a3a; --accent-hover: #a4bad8;
-    --danger: #E5383B; --danger-light: #2A1516;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,.25); --shadow-md: 0 4px 16px rgba(0,0,0,.3); --shadow-lg: 0 8px 32px rgba(0,0,0,.4);
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #131518; --surface: #1a1d22; --surface-hover: #24272e;
-  --border: #2c3039; --border-light: #22252c;
-  --text: #e2e4e8; --text-secondary: #9398a1; --text-tertiary: #636872;
-  --accent: #8aa3c8; --accent-light: #1e2a3a; --accent-hover: #a4bad8;
-  --danger: #E5383B; --danger-light: #2A1516;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,.25); --shadow-md: 0 4px 16px rgba(0,0,0,.3); --shadow-lg: 0 8px 32px rgba(0,0,0,.4);
-}
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html { scroll-padding-top: env(safe-area-inset-top, 0px); }
-body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
-.app { display: flex; height: 100vh; }
-.sidebar { width: 280px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; transition: transform .25s ease; }
-.sidebar-header { padding: 24px 20px 16px; border-bottom: 1px solid var(--border-light); }
-.logo { font-size: 20px; font-weight: 600; letter-spacing: -.02em; color: var(--text); display: flex; align-items: center; gap: 8px; }
-.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-.sidebar-actions { padding: 12px 16px; }
-.btn-new { width: 100%; padding: 10px 16px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); font-family: var(--font); font-size: 13.5px; font-weight: 500; cursor: pointer; transition: background .15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
-.btn-new:hover { background: var(--accent-hover); }
-.post-list { flex: 1; overflow-y: auto; padding: 8px; }
-.post-item { padding: 12px; border-radius: var(--radius-sm); cursor: pointer; transition: background .12s; margin-bottom: 2px; }
-.post-item:hover { background: var(--surface-hover); }
-.post-item.active { background: var(--accent-light); }
-.post-item-title { font-size: 13.5px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
-.post-item-meta { font-size: 11.5px; color: var(--text-tertiary); }
-.post-list-empty { text-align: center; padding: 40px 20px; color: var(--text-tertiary); font-size: 13px; line-height: 1.7; }
-.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; border-bottom: 1px solid var(--border-light); background: var(--surface); gap: 12px; flex-shrink: 0; }
-.topbar-left { display: flex; align-items: center; gap: 8px; }
-.btn-menu { display: none; width: 36px; height: 36px; border: none; background: none; cursor: pointer; border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 18px; align-items: center; justify-content: center; }
-.topbar-right { display: flex; align-items: center; gap: 8px; }
-.btn-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-secondary); transition: all .12s; }
-.btn-icon:hover { background: var(--surface-hover); color: var(--text); }
-.btn-icon.danger:hover { background: var(--danger-light); color: var(--danger); border-color: var(--danger); }
-.btn-share { padding: 8px 16px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.btn-share:hover { background: var(--accent-hover); }
-.btn-save { padding: 8px 16px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.btn-save:hover { background: var(--surface-hover); }
-.editor-wrap { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 32px 24px 80px; }
-.editor-container { width: 100%; max-width: 720px; }
-.title-input { width: 100%; border: none; outline: none; background: transparent; font-family: var(--font); font-size: 32px; font-weight: 600; color: var(--text); letter-spacing: -.02em; line-height: 1.3; padding: 0; margin-bottom: 8px; }
-.title-input::placeholder { color: var(--text-tertiary); }
-.subtitle-meta { font-size: 12.5px; color: var(--text-tertiary); margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-light); }
-.toolbar { display: flex; align-items: center; gap: 2px; padding: 6px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); margin-bottom: 20px; flex-wrap: wrap; position: sticky; top: 0; z-index: 10; }
-.toolbar-btn { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border: none; background: none; border-radius: var(--radius-sm); cursor: pointer; color: var(--text-secondary); font-size: 14px; transition: all .1s; font-family: var(--font); font-weight: 600; position: relative; }
-.toolbar-btn:hover { background: var(--surface-hover); color: var(--text); }
-.toolbar-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
-.color-picker-wrap { position: relative; display: flex; align-items: center; }
-.color-swatch { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border: none; background: none; border-radius: var(--radius-sm); cursor: pointer; color: var(--text-secondary); transition: all .1s; position: relative; }
-.color-swatch:hover { background: var(--surface-hover); }
-.color-swatch-bar { position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); width: 16px; height: 3px; border-radius: 2px; }
-.color-dropdown { display: none; position: absolute; top: 42px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-md); padding: 10px; z-index: 20; min-width: 180px; }
-.color-dropdown.show { display: block; }
-.color-dropdown-label { font-size: 11px; color: var(--text-tertiary); font-weight: 500; margin-bottom: 8px; }
-.color-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 8px; }
-.color-cell { width: 26px; height: 26px; border-radius: 4px; border: 2px solid transparent; cursor: pointer; transition: border-color .1s, transform .1s; }
-.color-cell:hover { transform: scale(1.15); }
-.color-cell.active { border-color: var(--accent); }
-.color-custom-row { display: flex; gap: 6px; align-items: center; padding-top: 8px; border-top: 1px solid var(--border-light); }
-.color-custom-input { flex: 1; border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-family: var(--mono); font-size: 12px; color: var(--text); background: var(--bg); outline: none; }
-.color-native-input { width: 26px; height: 26px; border: none; padding: 0; border-radius: 4px; cursor: pointer; background: none; }
-.editor-content { min-height: 400px; outline: none; font-size: 15.5px; line-height: 1.75; color: var(--text); word-break: break-word; }
-.editor-content:empty::before { content: '여기에 글을 작성하세요…'; color: var(--text-tertiary); pointer-events: none; }
-.editor-content h1 { font-size: 26px; font-weight: 600; margin: 28px 0 12px; line-height: 1.3; }
-.editor-content h2 { font-size: 21px; font-weight: 600; margin: 24px 0 10px; line-height: 1.35; }
-.editor-content h3 { font-size: 17px; font-weight: 600; margin: 20px 0 8px; line-height: 1.4; }
-.editor-content p { margin-bottom: 12px; }
-.editor-content blockquote { border-left: 3px solid var(--accent); padding-left: 16px; margin: 16px 0; color: var(--text-secondary); font-style: italic; }
-.editor-content pre { background: var(--surface-hover); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; font-family: var(--mono); font-size: 13.5px; overflow-x: auto; margin: 16px 0; }
-.editor-content code { font-family: var(--mono); background: var(--surface-hover); padding: 2px 5px; border-radius: 3px; font-size: 13.5px; }
-.editor-content pre code { background: none; padding: 0; }
-.editor-content ul, .editor-content ol { padding-left: 24px; margin-bottom: 12px; }
-.editor-content li { margin-bottom: 4px; }
-.editor-content img { max-width: 100%; border-radius: var(--radius-sm); margin: 16px 0; }
-.editor-content a { color: var(--accent); text-decoration: underline; }
-.editor-content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
-
-/* Reader */
-.reader-wrap { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 48px 24px 80px; }
-.reader-container { width: 100%; max-width: 720px; }
-.reader-title { font-size: 32px; font-weight: 600; letter-spacing: -.02em; line-height: 1.3; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border-light); -webkit-user-select: none; user-select: none; }
-.reader-content { font-size: 15.5px; line-height: 1.75; -webkit-user-select: none; user-select: none; }
-.reader-content h1 { font-size: 26px; font-weight: 600; margin: 28px 0 12px; }
-.reader-content h2 { font-size: 21px; font-weight: 600; margin: 24px 0 10px; }
-.reader-content h3 { font-size: 17px; font-weight: 600; margin: 20px 0 8px; }
-.reader-content p { margin-bottom: 12px; }
-.reader-content blockquote { border-left: 3px solid var(--accent); padding-left: 16px; margin: 16px 0; color: var(--text-secondary); font-style: italic; }
-.reader-content pre { background: var(--surface-hover); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; font-family: var(--mono); font-size: 13.5px; overflow-x: auto; margin: 16px 0; }
-.reader-content code { font-family: var(--mono); background: var(--surface-hover); padding: 2px 5px; border-radius: 3px; font-size: 13.5px; }
-.reader-content pre code { background: none; padding: 0; }
-.reader-content ul, .reader-content ol { padding-left: 24px; margin-bottom: 12px; }
-.reader-content li { margin-bottom: 4px; }
-.reader-content img { max-width: 100%; border-radius: var(--radius-sm); margin: 16px 0; pointer-events: none; }
-.reader-content a { color: var(--accent); text-decoration: underline; }
-.reader-content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
-.reader-loading { text-align: center; padding: 80px 20px; color: var(--text-tertiary); font-size: 14px; }
-.reader-not-found { text-align: center; padding: 80px 20px; }
-.reader-not-found h2 { font-size: 20px; margin-bottom: 8px; }
-.reader-not-found p { color: var(--text-secondary); font-size: 14px; }
-
-.welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 40px 24px; text-align: center; }
-.welcome-icon { width: 56px; height: 56px; border-radius: 14px; background: var(--accent-light); display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 20px; }
-.welcome h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
-.welcome p { font-size: 14px; color: var(--text-secondary); max-width: 320px; margin-bottom: 24px; }
-
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,25,23,.4); z-index: 100; align-items: center; justify-content: center; padding: 24px; }
-.modal-overlay.show { display: flex; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .modal-overlay { background: rgba(0,0,0,.55); } }
-.modal { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow-lg); max-width: 440px; width: 100%; padding: 28px; }
-.modal h3 { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
-.modal p { font-size: 13.5px; color: var(--text-secondary); margin-bottom: 20px; }
-.share-url-box { display: flex; gap: 8px; margin-bottom: 20px; }
-.share-url-input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: var(--mono); font-size: 13px; color: var(--text); background: var(--bg); outline: none; }
-.btn-copy { padding: 10px 18px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; }
-.share-sns { display: flex; gap: 8px; }
-.btn-sns { flex: 1; padding: 10px; border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius-sm); font-family: var(--font); font-size: 12.5px; font-weight: 500; color: var(--text); cursor: pointer; transition: all .12s; display: flex; align-items: center; justify-content: center; gap: 6px; }
-.btn-sns:hover { background: var(--surface-hover); }
-.modal-close { margin-top: 16px; width: 100%; padding: 10px; border: none; background: none; color: var(--text-tertiary); font-family: var(--font); font-size: 13px; cursor: pointer; }
-
-.toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text); color: var(--bg); padding: 10px 20px; border-radius: 8px; font-size: 13.5px; font-weight: 500; opacity: 0; transition: all .25s ease; z-index: 200; pointer-events: none; }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-@media (max-width: 768px) {
-  .sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 50; transform: translateX(-100%); box-shadow: var(--shadow-lg); }
-  .sidebar.open { transform: translateX(0); }
-  .btn-menu { display: flex; }
-  .editor-wrap, .reader-wrap { padding: 24px 16px 80px; }
-  .title-input, .reader-title { font-size: 24px; }
-  .topbar { padding: 12px 16px; }
-  .btn-save span, .btn-share span { display: none; }
-}
-.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 49; }
-.sidebar-overlay.show { display: block; }
-.word-count { font-size: 11.5px; color: var(--text-tertiary); font-family: var(--mono); }
+:root{--bg:#F7F6F3;--surface:#FFF;--surface-hover:#EEEDEA;--border:#E4E2DD;--border-light:#ECEAE5;--text:#1A1917;--text-secondary:#6B6960;--text-tertiary:#9E9B91;--accent:#607ca0;--accent-light:#dce4ef;--accent-hover:#4a6384;--danger:#C1121F;--danger-light:#FDE8E9;--shadow-sm:0 1px 3px rgba(26,25,23,.06);--shadow-md:0 4px 16px rgba(26,25,23,.08);--shadow-lg:0 8px 32px rgba(26,25,23,.12);--radius:10px;--radius-sm:6px;--font:'IBM Plex Sans',-apple-system,sans-serif;--mono:'IBM Plex Mono',monospace;box-sizing:border-box;padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#131518;--surface:#1a1d22;--surface-hover:#24272e;--border:#2c3039;--border-light:#22252c;--text:#e2e4e8;--text-secondary:#9398a1;--text-tertiary:#636872;--accent:#8aa3c8;--accent-light:#1e2a3a;--accent-hover:#a4bad8;--danger:#E5383B;--danger-light:#2A1516;--shadow-sm:0 1px 3px rgba(0,0,0,.25);--shadow-md:0 4px 16px rgba(0,0,0,.3);--shadow-lg:0 8px 32px rgba(0,0,0,.4)}}
+:root[data-theme="dark"]{--bg:#131518;--surface:#1a1d22;--surface-hover:#24272e;--border:#2c3039;--border-light:#22252c;--text:#e2e4e8;--text-secondary:#9398a1;--text-tertiary:#636872;--accent:#8aa3c8;--accent-light:#1e2a3a;--accent-hover:#a4bad8;--danger:#E5383B;--danger-light:#2A1516;--shadow-sm:0 1px 3px rgba(0,0,0,.25);--shadow-md:0 4px 16px rgba(0,0,0,.3);--shadow-lg:0 8px 32px rgba(0,0,0,.4)}
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0)}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+.app{display:flex;height:100vh}
+.sidebar{width:280px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:transform .25s ease}
+.sidebar-header{padding:24px 20px 16px;border-bottom:1px solid var(--border-light)}
+.logo{font-size:20px;font-weight:600;letter-spacing:-.02em;color:var(--text);display:flex;align-items:center;gap:8px}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.sidebar-actions{padding:12px 16px}
+.btn-new{width:100%;padding:10px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:13.5px;font-weight:500;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-new:hover{background:var(--accent-hover)}
+.post-list{flex:1;overflow-y:auto;padding:8px}
+.post-item{padding:12px;border-radius:var(--radius-sm);cursor:pointer;transition:background .12s;margin-bottom:2px}
+.post-item:hover{background:var(--surface-hover)}
+.post-item.active{background:var(--accent-light)}
+.post-item-title{font-size:13.5px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.post-item-meta{font-size:11.5px;color:var(--text-tertiary)}
+.post-list-empty{text-align:center;padding:40px 20px;color:var(--text-tertiary);font-size:13px;line-height:1.7}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border-light)}
+.btn-logout{width:100%;padding:8px;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font);font-size:12px;color:var(--text-secondary);cursor:pointer;transition:all .12s}
+.btn-logout:hover{background:var(--surface-hover);color:var(--text)}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-bottom:1px solid var(--border-light);background:var(--surface);gap:12px;flex-shrink:0}
+.topbar-left{display:flex;align-items:center;gap:8px}
+.btn-menu{display:none;width:36px;height:36px;border:none;background:none;cursor:pointer;border-radius:var(--radius-sm);color:var(--text-secondary);align-items:center;justify-content:center}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.btn-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--surface);border-radius:var(--radius-sm);cursor:pointer;color:var(--text-secondary);transition:all .12s}
+.btn-icon:hover{background:var(--surface-hover);color:var(--text)}
+.btn-icon.danger:hover{background:var(--danger-light);color:var(--danger);border-color:var(--danger)}
+.btn-share{padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.btn-share:hover{background:var(--accent-hover)}
+.btn-save{padding:8px 16px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.btn-save:hover{background:var(--surface-hover)}
+.editor-wrap{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:32px 24px 80px}
+.editor-container{width:100%;max-width:720px}
+.title-input{width:100%;border:none;outline:none;background:transparent;font-family:var(--font);font-size:32px;font-weight:600;color:var(--text);letter-spacing:-.02em;line-height:1.3;padding:0;margin-bottom:8px}
+.title-input::placeholder{color:var(--text-tertiary)}
+.subtitle-meta{font-size:12.5px;color:var(--text-tertiary);margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border-light)}
+.toolbar{display:flex;align-items:center;gap:2px;padding:6px 8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:20px;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+.toolbar-btn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:none;background:none;border-radius:var(--radius-sm);cursor:pointer;color:var(--text-secondary);font-size:14px;transition:all .1s;font-family:var(--font);font-weight:600;position:relative}
+.toolbar-btn:hover{background:var(--surface-hover);color:var(--text)}
+.toolbar-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.color-picker-wrap{position:relative;display:flex;align-items:center}
+.color-swatch{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:none;background:none;border-radius:var(--radius-sm);cursor:pointer;color:var(--text-secondary);transition:all .1s;position:relative}
+.color-swatch:hover{background:var(--surface-hover)}
+.color-swatch-bar{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:16px;height:3px;border-radius:2px}
+.color-dropdown{display:none;position:absolute;top:42px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:10px;z-index:20;min-width:180px}
+.color-dropdown.show{display:block}
+.color-dropdown-label{font-size:11px;color:var(--text-tertiary);font-weight:500;margin-bottom:8px}
+.color-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:8px}
+.color-cell{width:26px;height:26px;border-radius:4px;border:2px solid transparent;cursor:pointer;transition:border-color .1s,transform .1s}
+.color-cell:hover{transform:scale(1.15)}
+.color-cell.active{border-color:var(--accent)}
+.color-custom-row{display:flex;gap:6px;align-items:center;padding-top:8px;border-top:1px solid var(--border-light)}
+.color-custom-input{flex:1;border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg);outline:none}
+.color-native-input{width:26px;height:26px;border:none;padding:0;border-radius:4px;cursor:pointer;background:none}
+.editor-content{min-height:400px;outline:none;font-size:15.5px;line-height:1.75;color:var(--text);word-break:break-word}
+.editor-content:empty::before{content:'여기에 글을 작성하세요…';color:var(--text-tertiary);pointer-events:none}
+.editor-content h1{font-size:26px;font-weight:600;margin:28px 0 12px;line-height:1.3}.editor-content h2{font-size:21px;font-weight:600;margin:24px 0 10px}.editor-content h3{font-size:17px;font-weight:600;margin:20px 0 8px}.editor-content p{margin-bottom:12px}.editor-content blockquote{border-left:3px solid var(--accent);padding-left:16px;margin:16px 0;color:var(--text-secondary);font-style:italic}.editor-content pre{background:var(--surface-hover);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;font-family:var(--mono);font-size:13.5px;overflow-x:auto;margin:16px 0}.editor-content code{font-family:var(--mono);background:var(--surface-hover);padding:2px 5px;border-radius:3px;font-size:13.5px}.editor-content pre code{background:none;padding:0}.editor-content ul,.editor-content ol{padding-left:24px;margin-bottom:12px}.editor-content li{margin-bottom:4px}.editor-content img{max-width:100%;border-radius:var(--radius-sm);margin:16px 0}.editor-content a{color:var(--accent);text-decoration:underline}.editor-content hr{border:none;border-top:1px solid var(--border);margin:24px 0}
+.reader-wrap{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:48px 24px 80px}
+.reader-container{width:100%;max-width:720px}
+.reader-title{font-size:32px;font-weight:600;letter-spacing:-.02em;line-height:1.3;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border-light);-webkit-user-select:none;user-select:none}
+.reader-content{font-size:15.5px;line-height:1.75;-webkit-user-select:none;user-select:none}
+.reader-content h1{font-size:26px;font-weight:600;margin:28px 0 12px}.reader-content h2{font-size:21px;font-weight:600;margin:24px 0 10px}.reader-content h3{font-size:17px;font-weight:600;margin:20px 0 8px}.reader-content p{margin-bottom:12px}.reader-content blockquote{border-left:3px solid var(--accent);padding-left:16px;margin:16px 0;color:var(--text-secondary);font-style:italic}.reader-content pre{background:var(--surface-hover);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;font-family:var(--mono);font-size:13.5px;overflow-x:auto;margin:16px 0}.reader-content code{font-family:var(--mono);background:var(--surface-hover);padding:2px 5px;border-radius:3px;font-size:13.5px}.reader-content pre code{background:none;padding:0}.reader-content ul,.reader-content ol{padding-left:24px;margin-bottom:12px}.reader-content li{margin-bottom:4px}.reader-content img{max-width:100%;border-radius:var(--radius-sm);margin:16px 0;pointer-events:none}.reader-content a{color:var(--accent);text-decoration:underline}.reader-content hr{border:none;border-top:1px solid var(--border);margin:24px 0}
+.reader-loading{text-align:center;padding:80px 20px;color:var(--text-tertiary);font-size:14px}
+.reader-not-found{text-align:center;padding:80px 20px}.reader-not-found h2{font-size:20px;margin-bottom:8px}.reader-not-found p{color:var(--text-secondary);font-size:14px}
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px 24px;text-align:center}
+.welcome-icon{width:56px;height:56px;border-radius:14px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px}
+.welcome h2{font-size:20px;font-weight:600;margin-bottom:8px}.welcome p{font-size:14px;color:var(--text-secondary);max-width:320px;margin-bottom:24px}
+.btn-google{padding:12px 28px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-sm)}
+.btn-google:hover{background:var(--surface-hover);box-shadow:var(--shadow-md)}
+.btn-google img{width:18px;height:18px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(26,25,23,.4);z-index:100;align-items:center;justify-content:center;padding:24px}
+.modal-overlay.show{display:flex}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .modal-overlay{background:rgba(0,0,0,.55)}}
+.modal{background:var(--surface);border-radius:14px;box-shadow:var(--shadow-lg);max-width:440px;width:100%;padding:28px}
+.modal h3{font-size:17px;font-weight:600;margin-bottom:6px}.modal p{font-size:13.5px;color:var(--text-secondary);margin-bottom:20px}
+.share-url-box{display:flex;gap:8px;margin-bottom:20px}
+.share-url-input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:var(--mono);font-size:13px;color:var(--text);background:var(--bg);outline:none}
+.btn-copy{padding:10px 18px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
+.share-sns{display:flex;gap:8px}
+.btn-sns{flex:1;padding:10px;border:1px solid var(--border);background:var(--surface);border-radius:var(--radius-sm);font-family:var(--font);font-size:12.5px;font-weight:500;color:var(--text);cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-sns:hover{background:var(--surface-hover)}
+.modal-close{margin-top:16px;width:100%;padding:10px;border:none;background:none;color:var(--text-tertiary);font-family:var(--font);font-size:13px;cursor:pointer}
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 20px;border-radius:8px;font-size:13.5px;font-weight:500;opacity:0;transition:all .25s ease;z-index:200;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:768px){.sidebar{position:fixed;top:0;left:0;bottom:0;z-index:50;transform:translateX(-100%);box-shadow:var(--shadow-lg)}.sidebar.open{transform:translateX(0)}.btn-menu{display:flex}.editor-wrap,.reader-wrap{padding:24px 16px 80px}.title-input,.reader-title{font-size:24px}.topbar{padding:12px 16px}.btn-save span,.btn-share span{display:none}}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:49}.sidebar-overlay.show{display:block}
+.word-count{font-size:11.5px;color:var(--text-tertiary);font-family:var(--mono)}
 </style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header"><div class="logo"><span class="logo-dot"></span> Ink</div></div>
-    <div class="sidebar-actions">
-      <button class="btn-new" onclick="createNew()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        새 글 작성
-      </button>
-    </div>
+    <div class="sidebar-actions"><button class="btn-new" onclick="createNew()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>새 글 작성</button></div>
     <div class="post-list" id="postList"><div class="post-list-empty">아직 저장된 글이 없어요.<br>새 글을 작성해보세요.</div></div>
+    <div class="sidebar-footer"><button class="btn-logout" onclick="doLogout()">로그아웃</button></div>
   </aside>
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
-
-  <main class="main" id="mainArea">
+  <main class="main">
+    <!-- Login -->
+    <div class="welcome" id="loginScreen" style="display:none">
+      <div class="welcome-icon">🔐</div>
+      <h2>로그인</h2>
+      <p>Google 계정으로 로그인하면 어디서든 내 글을 이어서 쓸 수 있어요.</p>
+      <button class="btn-google" onclick="doLogin()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 019.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 000 24c0 3.77.9 7.35 2.56 10.54l7.97-5.95z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 5.95C6.51 42.62 14.62 48 24 48z"/></svg>
+        Google로 시작하기
+      </button>
+    </div>
     <!-- Welcome (editor home) -->
     <div class="welcome" id="welcomeScreen" style="display:none">
       <div class="welcome-icon">✏️</div>
       <h2>Ink에 오신 걸 환영해요</h2>
       <p>마크다운을 지원하는 심플한 에디터. 글을 쓰고, 저장하고, 링크로 공유하세요.</p>
-      <button class="btn-new" onclick="createNew()" style="width:auto; padding: 12px 28px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        첫 번째 글 쓰기
-      </button>
+      <button class="btn-new" onclick="createNew()" style="width:auto;padding:12px 28px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>첫 번째 글 쓰기</button>
     </div>
-
     <!-- Editor -->
-    <div id="editorScreen" style="display:none; flex:1; flex-direction:column;">
+    <div id="editorScreen" style="display:none;flex:1;flex-direction:column">
       <div class="topbar">
-        <div class="topbar-left">
-          <button class="btn-menu" onclick="toggleSidebar()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-          <span class="word-count" id="wordCount">0자</span>
-        </div>
+        <div class="topbar-left"><button class="btn-menu" onclick="toggleSidebar()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><span class="word-count" id="wordCount">0자</span></div>
         <div class="topbar-right">
-          <button class="btn-icon danger" onclick="deletePost()" title="삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+          <button class="btn-icon danger" onclick="deletePost()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
           <button class="btn-save" onclick="savePost()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg><span>저장</span></button>
           <button class="btn-share" onclick="sharePost()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>공유</span></button>
         </div>
       </div>
-      <div class="editor-wrap">
-        <div class="editor-container">
-          <input class="title-input" id="titleInput" type="text" placeholder="제목을 입력하세요" oninput="onEdit()">
-          <div class="subtitle-meta" id="metaLine">방금 전 · 초안</div>
-          <div class="toolbar">
-            <button class="toolbar-btn" onclick="execCmd('bold')" title="굵게"><b>B</b></button>
-            <button class="toolbar-btn" onclick="execCmd('italic')" title="기울임"><i>I</i></button>
-            <button class="toolbar-btn" onclick="execCmd('strikeThrough')" title="취소선"><s>S</s></button>
-            <span class="toolbar-sep"></span>
-            <div class="color-picker-wrap" id="textColorWrap">
-              <button class="color-swatch" onclick="toggleColorPicker('textColor')" title="글자색">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20h16"/><path d="M7 16L12 4l5 12"/><path d="M9.5 11h5"/></svg>
-                <span class="color-swatch-bar" id="textColorBar" style="background:#1A1917"></span>
-              </button>
-              <div class="color-dropdown" id="textColorDropdown">
-                <div class="color-dropdown-label">글자색</div>
-                <div class="color-grid" id="textColorGrid"></div>
-                <div class="color-custom-row">
-                  <input type="color" class="color-native-input" id="textColorNative" value="#1A1917" oninput="applyTextColor(this.value)">
-                  <input type="text" class="color-custom-input" id="textColorHex" placeholder="#607ca0" maxlength="7" onkeydown="if(event.key==='Enter'){applyTextColor(this.value)}">
-                </div>
-              </div>
-            </div>
-            <div class="color-picker-wrap" id="quoteColorWrap">
-              <button class="color-swatch" onclick="toggleColorPicker('quoteColor')" title="인용구 막대 색">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="4" x2="4" y2="20"/><line x1="10" y1="8" x2="20" y2="8"/><line x1="10" y1="13" x2="18" y2="13"/><line x1="10" y1="18" x2="15" y2="18"/></svg>
-                <span class="color-swatch-bar" id="quoteColorBar" style="background:#607ca0"></span>
-              </button>
-              <div class="color-dropdown" id="quoteColorDropdown">
-                <div class="color-dropdown-label">인용구 막대 색</div>
-                <div class="color-grid" id="quoteColorGrid"></div>
-                <div class="color-custom-row">
-                  <input type="color" class="color-native-input" id="quoteColorNative" value="#607ca0" oninput="applyQuoteColor(this.value)">
-                  <input type="text" class="color-custom-input" id="quoteColorHex" placeholder="#607ca0" maxlength="7" onkeydown="if(event.key==='Enter'){applyQuoteColor(this.value)}">
-                </div>
-              </div>
-            </div>
-            <span class="toolbar-sep"></span>
-            <button class="toolbar-btn" onclick="execBlock('h1')" style="font-size:13px">H1</button>
-            <button class="toolbar-btn" onclick="execBlock('h2')" style="font-size:13px">H2</button>
-            <button class="toolbar-btn" onclick="execBlock('h3')" style="font-size:13px">H3</button>
-            <span class="toolbar-sep"></span>
-            <button class="toolbar-btn" onclick="execCmd('insertUnorderedList')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="4" cy="18" r="1.5" fill="currentColor"/></svg></button>
-            <button class="toolbar-btn" onclick="execCmd('insertOrderedList')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><text x="3" y="8" font-size="8" fill="currentColor" font-family="sans-serif" stroke="none">1</text><text x="3" y="14" font-size="8" fill="currentColor" font-family="sans-serif" stroke="none">2</text><text x="3" y="20" font-size="8" fill="currentColor" font-family="sans-serif" stroke="none">3</text></svg></button>
-            <span class="toolbar-sep"></span>
-            <button class="toolbar-btn" onclick="insertQuote()"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10 8H6a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h2.5L7 19h3l1.5-4H12V10a2 2 0 0 0-2-2zm8 0h-4a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h2.5L15 19h3l1.5-4H20V10a2 2 0 0 0-2-2z"/></svg></button>
-            <button class="toolbar-btn" onclick="insertCode()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></button>
-            <button class="toolbar-btn" onclick="insertHR()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/></svg></button>
-            <span class="toolbar-sep"></span>
-            <button class="toolbar-btn" onclick="insertLink()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
-            <button class="toolbar-btn" onclick="insertImage()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button>
-          </div>
-          <div class="editor-content" id="editorContent" contenteditable="true" oninput="onEdit()"></div>
+      <div class="editor-wrap"><div class="editor-container">
+        <input class="title-input" id="titleInput" type="text" placeholder="제목을 입력하세요" oninput="onEdit()">
+        <div class="subtitle-meta" id="metaLine">방금 전 · 초안</div>
+        <div class="toolbar">
+          <button class="toolbar-btn" onclick="execCmd('bold')"><b>B</b></button><button class="toolbar-btn" onclick="execCmd('italic')"><i>I</i></button><button class="toolbar-btn" onclick="execCmd('strikeThrough')"><s>S</s></button><span class="toolbar-sep"></span>
+          <div class="color-picker-wrap"><button class="color-swatch" onclick="toggleColorPicker('textColor')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20h16"/><path d="M7 16L12 4l5 12"/><path d="M9.5 11h5"/></svg><span class="color-swatch-bar" id="textColorBar" style="background:#1A1917"></span></button><div class="color-dropdown" id="textColorDropdown"><div class="color-dropdown-label">글자색</div><div class="color-grid" id="textColorGrid"></div><div class="color-custom-row"><input type="color" class="color-native-input" id="textColorNative" value="#1A1917" oninput="applyTextColor(this.value)"><input type="text" class="color-custom-input" id="textColorHex" placeholder="#607ca0" maxlength="7" onkeydown="if(event.key==='Enter')applyTextColor(this.value)"></div></div></div>
+          <div class="color-picker-wrap"><button class="color-swatch" onclick="toggleColorPicker('quoteColor')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="4" x2="4" y2="20"/><line x1="10" y1="8" x2="20" y2="8"/><line x1="10" y1="13" x2="18" y2="13"/><line x1="10" y1="18" x2="15" y2="18"/></svg><span class="color-swatch-bar" id="quoteColorBar" style="background:#607ca0"></span></button><div class="color-dropdown" id="quoteColorDropdown"><div class="color-dropdown-label">인용구 막대 색</div><div class="color-grid" id="quoteColorGrid"></div><div class="color-custom-row"><input type="color" class="color-native-input" id="quoteColorNative" value="#607ca0" oninput="applyQuoteColor(this.value)"><input type="text" class="color-custom-input" id="quoteColorHex" placeholder="#607ca0" maxlength="7" onkeydown="if(event.key==='Enter')applyQuoteColor(this.value)"></div></div></div>
+          <span class="toolbar-sep"></span><button class="toolbar-btn" onclick="execBlock('h1')" style="font-size:13px">H1</button><button class="toolbar-btn" onclick="execBlock('h2')" style="font-size:13px">H2</button><button class="toolbar-btn" onclick="execBlock('h3')" style="font-size:13px">H3</button><span class="toolbar-sep"></span>
+          <button class="toolbar-btn" onclick="execCmd('insertUnorderedList')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="4" cy="18" r="1.5" fill="currentColor"/></svg></button>
+          <button class="toolbar-btn" onclick="execCmd('insertOrderedList')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><text x="3" y="8" font-size="8" fill="currentColor" font-family="sans-serif" stroke="none">1</text><text x="3" y="14" font-size="8" fill="currentColor" font-family="sans-serif" stroke="none">2</text><text x="3" y="20" font-size="8" fill="currentColor" font-family="sans-serif" stroke="none">3</text></svg></button>
+          <span class="toolbar-sep"></span><button class="toolbar-btn" onclick="insertQuote()"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10 8H6a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h2.5L7 19h3l1.5-4H12V10a2 2 0 0 0-2-2zm8 0h-4a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h2.5L15 19h3l1.5-4H20V10a2 2 0 0 0-2-2z"/></svg></button>
+          <button class="toolbar-btn" onclick="insertCode()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></button>
+          <button class="toolbar-btn" onclick="insertHR()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/></svg></button><span class="toolbar-sep"></span>
+          <button class="toolbar-btn" onclick="insertLink()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
+          <button class="toolbar-btn" onclick="insertImage()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button>
         </div>
-      </div>
+        <div class="editor-content" id="editorContent" contenteditable="true" oninput="onEdit()"></div>
+      </div></div>
     </div>
-
     <!-- Reader -->
-    <div id="readerScreen" style="display:none; flex:1; flex-direction:column;">
-      <div class="reader-wrap"><div class="reader-container"><div id="readerBody"><div class="reader-loading">불러오는 중…</div></div></div></div>
-    </div>
-
-    <!-- Landing (visitors) -->
-    <div id="landingScreen" style="display:none; flex:1; flex-direction:column;">
-      <div class="welcome">
-        <div class="welcome-icon">✏️</div>
-        <h2>Ink</h2>
-        <p>글을 쓰고, 저장하고, 링크로 공유하는 심플한 에디터.</p>
-      </div>
-    </div>
+    <div id="readerScreen" style="display:none;flex:1;flex-direction:column"><div class="reader-wrap"><div class="reader-container"><div id="readerBody"><div class="reader-loading">불러오는 중…</div></div></div></div></div>
+    <!-- Landing -->
+    <div id="landingScreen" style="display:none;flex:1;flex-direction:column"><div class="welcome"><div class="welcome-icon">✏️</div><h2>Ink</h2><p>글을 쓰고, 저장하고, 링크로 공유하는 심플한 에디터.</p></div></div>
   </main>
 </div>
-
-<div class="modal-overlay" id="shareModal">
-  <div class="modal">
-    <h3>공유 링크</h3>
-    <p>이 링크를 복사해서 SNS에 공유하세요.</p>
-    <div class="share-url-box">
-      <input class="share-url-input" id="shareUrlInput" readonly>
-      <button class="btn-copy" onclick="copyShareUrl()">복사</button>
-    </div>
-    <div class="share-sns">
-      <button class="btn-sns" onclick="shareToSNS('twitter')">𝕏 Twitter</button>
-      <button class="btn-sns" onclick="shareToSNS('facebook')">Facebook</button>
-      <button class="btn-sns" onclick="shareToSNS('kakao')">카카오톡</button>
-    </div>
-    <button class="modal-close" onclick="closeModal()">닫기</button>
-  </div>
-</div>
+<div class="modal-overlay" id="shareModal"><div class="modal"><h3>공유 링크</h3><p>이 링크를 복사해서 SNS에 공유하세요.</p><div class="share-url-box"><input class="share-url-input" id="shareUrlInput" readonly><button class="btn-copy" onclick="copyShareUrl()">복사</button></div><div class="share-sns"><button class="btn-sns" onclick="shareToSNS('twitter')">𝕏 Twitter</button><button class="btn-sns" onclick="shareToSNS('facebook')">Facebook</button><button class="btn-sns" onclick="shareToSNS('kakao')">카카오톡</button></div><button class="modal-close" onclick="closeModal()">닫기</button></div></div>
 <div class="toast" id="toast"></div>
-
 <script>
-// ══════════════════════════════════════
-// F12 / DevTools 방어
-// ══════════════════════════════════════
-(function(){
-  // 우클릭 차단
-  document.addEventListener('contextmenu', function(e){ e.preventDefault(); });
-  // 키보드 단축키 차단 (F12, Ctrl+Shift+I/J/C, Ctrl+U)
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'F12') { e.preventDefault(); return false; }
-    if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) { e.preventDefault(); return false; }
-    if (e.ctrlKey && (e.key === 'U' || e.key === 'u')) { e.preventDefault(); return false; }
-  });
-  // 콘솔 경고
-  var w = '%c⚠ 이 브라우저 기능은 개발자를 위한 것입니다.';
-  try { console.log(w, 'font-size:24px;color:red;font-weight:bold;'); } catch(e){}
-  // DevTools 감지 (debugger 트랩)
-  (function dt(){
-    var t = new Date();
-    debugger;
-    if (new Date() - t > 100) {
-      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#999;">접근이 제한되었습니다.</div>';
-    }
-    setTimeout(dt, 3000);
-  })();
-})();
+// ═══ F12 방어 ═══
+!function(){document.addEventListener('contextmenu',function(e){e.preventDefault()});document.addEventListener('keydown',function(e){if(e.key==='F12'){e.preventDefault();return false}if(e.ctrlKey&&e.shiftKey&&/^[IJCijc]$/.test(e.key)){e.preventDefault();return false}if(e.ctrlKey&&/^[Uu]$/.test(e.key)){e.preventDefault();return false}});try{console.log('%c⚠ 이 브라우저 기능은 개발자를 위한 것입니다.','font-size:24px;color:red;font-weight:bold')}catch(e){}!function dt(){var t=new Date;debugger;if(new Date-t>100)document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#999">접근이 제한되었습니다.</div>';setTimeout(dt,3000)}()}();
 
-// ══════════════════════════════════════
-// 비밀 에디터 접속 키 (이 값만 알면 에디터 접근 가능)
-// ══════════════════════════════════════
-var SECRET_KEY = 'xK9mP2qW5rT8nL4jF7vB3cZ6';
+// ═══ 비밀키 ═══
+var SECRET='xK9mP2qW5rT8nL4jF7vB3cZ6';
 
-// ══════════════════════════════════════
-// Firebase
-// ══════════════════════════════════════
-firebase.initializeApp({
-  apiKey: "AIzaSyCfeSRP4LNjALm1vG40qzpegQwgVyQEKbQ",
-  authDomain: "log-editor.firebaseapp.com",
-  projectId: "log-editor",
-  storageBucket: "log-editor.firebasestorage.app",
-  messagingSenderId: "281847580341",
-  appId: "1:281847580341:web:2556c1b5ebf22bdbc860fc"
+// ═══ Firebase ═══
+firebase.initializeApp({apiKey:"AIzaSyCfeSRP4LNjALm1vG40qzpegQwgVyQEKbQ",authDomain:"log-editor.firebaseapp.com",projectId:"log-editor",storageBucket:"log-editor.firebasestorage.app",messagingSenderId:"281847580341",appId:"1:281847580341:web:2556c1b5ebf22bdbc860fc"});
+var db=firebase.firestore(),auth=firebase.auth(),currentUser=null;
+
+// ═══ Auth ═══
+function doLogin(){
+  var provider=new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(function(e){showToast('로그인 실패: '+e.message)});
+}
+function doLogout(){
+  auth.signOut().then(function(){currentUser=null;posts=[];currentId=null;checkRoute()});
+}
+auth.onAuthStateChanged(function(user){
+  currentUser=user;
+  if(user){loadPostsFromServer().then(function(){checkRoute()})}
+  else{posts=[];checkRoute()}
 });
-var db = firebase.firestore();
 
-// ══════════════════════════════════════
-// Slug (제목 → URL-safe 문자열)
-// ══════════════════════════════════════
-function genShareCode() {
-  var chars = 'abcdefghijkmnpqrstuvwxyz23456789';
-  var code = '';
-  for (var i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-  return code;
+// ═══ Server sync ═══
+function loadPostsFromServer(){
+  if(!currentUser)return Promise.resolve();
+  return db.collection('users').doc(currentUser.uid).collection('posts').orderBy('updated','desc').get().then(function(snap){
+    posts=[];
+    snap.forEach(function(doc){var d=doc.data();d.id=doc.id;posts.push(d)});
+  }).catch(function(){});
+}
+function savePostToServer(post){
+  if(!currentUser)return Promise.resolve();
+  var data={title:post.title,content:post.content,created:post.created,updated:post.updated,shareCode:post.shareCode||''};
+  return db.collection('users').doc(currentUser.uid).collection('posts').doc(post.id).set(data);
+}
+function deletePostFromServer(postId){
+  if(!currentUser)return Promise.resolve();
+  return db.collection('users').doc(currentUser.uid).collection('posts').doc(postId).delete();
+}
+function publishSharedPost(post){
+  if(!post.shareCode)return Promise.resolve();
+  return db.collection('shared').doc(post.shareCode).set({title:post.title,content:post.content,updated:post.updated});
+}
+function deleteSharedPost(code){
+  if(!code)return Promise.resolve();
+  return db.collection('shared').doc(code).delete().catch(function(){});
 }
 
-// ══════════════════════════════════════
-// Color
-// ══════════════════════════════════════
-var COLORS = ['#1A1917','#374151','#607ca0','#2563EB','#7C3AED','#DB2777','#DC2626','#EA580C','#D97706','#16A34A','#0D9488','#6B7280','#94A3B8','#A78BFA','#F472B6','#FB923C','#FACC15','#4ADE80'];
-var savedRange = null;
-document.addEventListener('selectionchange', function(){
-  var sel = window.getSelection();
-  if (sel.rangeCount > 0) {
-    var range = sel.getRangeAt(0);
-    var editor = document.getElementById('editorContent');
-    if (editor && editor.contains(range.startContainer)) savedRange = range.cloneRange();
-  }
-});
-document.addEventListener('mousedown', function(e){
-  if (e.target.closest('.color-dropdown') || e.target.closest('.color-swatch')) e.preventDefault();
-});
-function restoreSelection() {
-  if (!savedRange) return;
-  var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(savedRange);
+// ═══ Share code ═══
+function genCode(){var c='abcdefghijkmnpqrstuvwxyz23456789',s='';for(var i=0;i<8;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
+
+// ═══ Color ═══
+var COLORS=['#1A1917','#374151','#607ca0','#2563EB','#7C3AED','#DB2777','#DC2626','#EA580C','#D97706','#16A34A','#0D9488','#6B7280','#94A3B8','#A78BFA','#F472B6','#FB923C','#FACC15','#4ADE80'];
+var savedRange=null;
+document.addEventListener('selectionchange',function(){var s=window.getSelection();if(s.rangeCount>0){var r=s.getRangeAt(0),ed=document.getElementById('editorContent');if(ed&&ed.contains(r.startContainer))savedRange=r.cloneRange()}});
+document.addEventListener('mousedown',function(e){if(e.target.closest('.color-dropdown')||e.target.closest('.color-swatch'))e.preventDefault()});
+function restoreSelection(){if(!savedRange)return;var s=window.getSelection();s.removeAllRanges();s.addRange(savedRange)}
+function buildColorGrid(id,fn,active){var g=document.getElementById(id);g.innerHTML='';COLORS.forEach(function(c){var cell=document.createElement('div');cell.className='color-cell'+(c.toLowerCase()===(active||'').toLowerCase()?' active':'');cell.style.background=c;cell.addEventListener('mousedown',function(e){e.preventDefault();fn(c)});g.appendChild(cell)})}
+var currentTextColor='#1A1917';
+function applyTextColor(c){if(!c.startsWith('#'))c='#'+c;currentTextColor=c;restoreSelection();document.execCommand('foreColor',false,c);document.getElementById('textColorBar').style.background=c;document.getElementById('textColorNative').value=c;document.getElementById('textColorHex').value=c;buildColorGrid('textColorGrid',applyTextColor,c);onEdit()}
+var currentQuoteColor='#607ca0';
+function getBlockquoteAtCursor(){var s=window.getSelection();if(!s.rangeCount)return null;var n=s.getRangeAt(0).startContainer;while(n&&n!==document.getElementById('editorContent')){if(n.nodeName==='BLOCKQUOTE')return n;n=n.parentNode}return null}
+function applyQuoteColor(c){if(!c.startsWith('#'))c='#'+c;currentQuoteColor=c;document.getElementById('quoteColorBar').style.background=c;document.getElementById('quoteColorNative').value=c;document.getElementById('quoteColorHex').value=c;buildColorGrid('quoteColorGrid',applyQuoteColor,c);restoreSelection();var bq=getBlockquoteAtCursor();if(bq)bq.style.borderLeftColor=c;onEdit()}
+function rgbToHex(rgb){if(!rgb)return null;if(rgb.startsWith('#'))return rgb;var m=rgb.match(/(\d+)/g);if(!m||m.length<3)return null;return'#'+m.slice(0,3).map(function(n){return parseInt(n).toString(16).padStart(2,'0')}).join('')}
+function toggleColorPicker(type){var dd=document.getElementById(type+'Dropdown'),open=dd.classList.contains('show');document.querySelectorAll('.color-dropdown').forEach(function(d){d.classList.remove('show')});if(!open){if(type==='textColor')buildColorGrid('textColorGrid',applyTextColor,currentTextColor);if(type==='quoteColor'){var bq=getBlockquoteAtCursor();if(bq&&bq.style.borderLeftColor){var hex=rgbToHex(bq.style.borderLeftColor);if(hex){currentQuoteColor=hex;document.getElementById('quoteColorBar').style.background=hex;document.getElementById('quoteColorNative').value=hex;document.getElementById('quoteColorHex').value=hex}}buildColorGrid('quoteColorGrid',applyQuoteColor,currentQuoteColor)}dd.classList.add('show')}}
+document.addEventListener('click',function(e){if(!e.target.closest('.color-picker-wrap'))document.querySelectorAll('.color-dropdown').forEach(function(d){d.classList.remove('show')})});
+
+// ═══ State ═══
+var posts=[],currentId=null;
+function genId(){return Date.now().toString(36)+Math.random().toString(36).substr(2,6)}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function stripTags(h){var d=document.createElement('div');d.innerHTML=h;return d.textContent||''}
+function timeAgo(ts){var d=Date.now()-ts;if(d<60000)return'방금 전';if(d<3600000)return Math.floor(d/60000)+'분 전';if(d<86400000)return Math.floor(d/3600000)+'시간 전';var dt=new Date(ts);return(dt.getMonth()+1)+'월 '+dt.getDate()+'일'}
+
+function renderSidebar(){
+  var list=document.getElementById('postList');
+  if(!posts.length){list.innerHTML='<div class="post-list-empty">아직 저장된 글이 없어요.<br>새 글을 작성해보세요.</div>';return}
+  list.innerHTML=posts.sort(function(a,b){return b.updated-a.updated}).map(function(p){
+    return'<div class="post-item '+(p.id===currentId?'active':'')+'" onclick="loadPost(\''+p.id+'\')">'
+      +'<div class="post-item-title">'+esc(p.title||'제목 없음')+'</div>'
+      +'<div class="post-item-meta">'+timeAgo(p.updated)+' · '+(p.content?stripTags(p.content).length:0)+'자</div></div>'
+  }).join('')
 }
-function buildColorGrid(id, fn, active) {
-  var g = document.getElementById(id); g.innerHTML = '';
-  COLORS.forEach(function(c){
-    var cell = document.createElement('div');
-    cell.className = 'color-cell' + (c.toLowerCase() === (active||'').toLowerCase() ? ' active' : '');
-    cell.style.background = c;
-    cell.addEventListener('mousedown', function(e){ e.preventDefault(); fn(c); });
-    g.appendChild(cell);
+
+function showScreen(name){
+  ['loginScreen','welcomeScreen','editorScreen','readerScreen','landingScreen'].forEach(function(id){
+    document.getElementById(id).style.display='none'
   });
-}
-var currentTextColor = '#1A1917';
-function applyTextColor(c) {
-  if (!c.startsWith('#')) c = '#'+c;
-  currentTextColor = c; restoreSelection();
-  document.execCommand('foreColor', false, c);
-  document.getElementById('textColorBar').style.background = c;
-  document.getElementById('textColorNative').value = c;
-  document.getElementById('textColorHex').value = c;
-  buildColorGrid('textColorGrid', applyTextColor, c); onEdit();
-}
-var currentQuoteColor = '#607ca0';
-function getBlockquoteAtCursor() {
-  var sel = window.getSelection(); if (!sel.rangeCount) return null;
-  var node = sel.getRangeAt(0).startContainer;
-  while (node && node !== document.getElementById('editorContent')) { if (node.nodeName === 'BLOCKQUOTE') return node; node = node.parentNode; }
-  return null;
-}
-function applyQuoteColor(c) {
-  if (!c.startsWith('#')) c = '#'+c;
-  currentQuoteColor = c;
-  document.getElementById('quoteColorBar').style.background = c;
-  document.getElementById('quoteColorNative').value = c;
-  document.getElementById('quoteColorHex').value = c;
-  buildColorGrid('quoteColorGrid', applyQuoteColor, c);
-  restoreSelection(); var bq = getBlockquoteAtCursor(); if (bq) bq.style.borderLeftColor = c;
-  onEdit();
-}
-function rgbToHex(rgb) {
-  if (!rgb) return null; if (rgb.startsWith('#')) return rgb;
-  var m = rgb.match(/(\d+)/g); if (!m||m.length<3) return null;
-  return '#'+m.slice(0,3).map(function(n){return parseInt(n).toString(16).padStart(2,'0')}).join('');
-}
-function toggleColorPicker(type) {
-  var dd = document.getElementById(type+'Dropdown');
-  var isOpen = dd.classList.contains('show');
-  document.querySelectorAll('.color-dropdown').forEach(function(d){d.classList.remove('show')});
-  if (!isOpen) {
-    if (type==='textColor') buildColorGrid('textColorGrid', applyTextColor, currentTextColor);
-    if (type==='quoteColor') {
-      var bq = getBlockquoteAtCursor();
-      if (bq && bq.style.borderLeftColor) { var hex = rgbToHex(bq.style.borderLeftColor); if (hex) { currentQuoteColor=hex; document.getElementById('quoteColorBar').style.background=hex; document.getElementById('quoteColorNative').value=hex; document.getElementById('quoteColorHex').value=hex; } }
-      buildColorGrid('quoteColorGrid', applyQuoteColor, currentQuoteColor);
-    }
-    dd.classList.add('show');
-  }
-}
-document.addEventListener('click', function(e){ if (!e.target.closest('.color-picker-wrap')) document.querySelectorAll('.color-dropdown').forEach(function(d){d.classList.remove('show')}); });
-
-// ══════════════════════════════════════
-// State
-// ══════════════════════════════════════
-var posts = [];
-var currentId = null;
-try { posts = JSON.parse(localStorage.getItem('ink_posts') || '[]'); } catch(e){ posts=[]; }
-
-function genId() { return Date.now().toString(36) + Math.random().toString(36).substr(2,6); }
-function esc(s) { var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
-function stripTags(h) { var d=document.createElement('div'); d.innerHTML=h; return d.textContent||''; }
-function timeAgo(ts) {
-  var diff = Date.now()-ts;
-  if (diff<60000) return '방금 전';
-  if (diff<3600000) return Math.floor(diff/60000)+'분 전';
-  if (diff<86400000) return Math.floor(diff/3600000)+'시간 전';
-  var d=new Date(ts); return (d.getMonth()+1)+'월 '+d.getDate()+'일';
+  document.getElementById(name+'Screen').style.display=(name==='editor'||name==='reader')?'flex':'';
+  document.getElementById('sidebar').style.display=(name==='welcome'||name==='editor')?'':'none';
 }
 
-function renderSidebar() {
-  var list = document.getElementById('postList');
-  if (!posts.length) { list.innerHTML='<div class="post-list-empty">아직 저장된 글이 없어요.<br>새 글을 작성해보세요.</div>'; return; }
-  list.innerHTML = posts.sort(function(a,b){return b.updated-a.updated}).map(function(p){
-    var t = esc(p.title||'제목 없음');
-    var len = p.content ? stripTags(p.content).length : 0;
-    return '<div class="post-item '+(p.id===currentId?'active':'')+'" onclick="loadPost(\''+p.id+'\')">'
-      +'<div class="post-item-title">'+t+'</div>'
-      +'<div class="post-item-meta">'+timeAgo(p.updated)+' · '+len+'자</div></div>';
-  }).join('');
-}
+function createNew(){var p={id:genId(),title:'',content:'',created:Date.now(),updated:Date.now(),shareCode:''};posts.unshift(p);loadPost(p.id);closeSidebar()}
+function loadPost(id){var p=posts.find(function(x){return x.id===id});if(!p)return;currentId=id;document.getElementById('titleInput').value=p.title;document.getElementById('editorContent').innerHTML=p.content;document.getElementById('metaLine').textContent=timeAgo(p.updated)+' · '+(p.content?stripTags(p.content).length:0)+'자';showScreen('editor');updateWordCount();renderSidebar()}
+function onEdit(){updateWordCount();document.querySelectorAll('#editorContent blockquote').forEach(function(bq){if(!bq.style.borderLeftColor)bq.style.borderLeftColor=currentQuoteColor})}
+function updateWordCount(){document.getElementById('wordCount').textContent=stripTags(document.getElementById('editorContent').innerHTML).length+'자'}
 
-function showScreen(name) {
-  document.getElementById('welcomeScreen').style.display = name==='welcome' ? '' : 'none';
-  document.getElementById('editorScreen').style.display = name==='editor' ? 'flex' : 'none';
-  document.getElementById('readerScreen').style.display = name==='reader' ? 'flex' : 'none';
-  document.getElementById('landingScreen').style.display = name==='landing' ? 'flex' : 'none';
-  document.getElementById('sidebar').style.display = (name==='reader'||name==='landing') ? 'none' : '';
-}
-
-function createNew() {
-  var post = { id: genId(), title:'', content:'', created:Date.now(), updated:Date.now() };
-  posts.unshift(post); saveToDisk(); loadPost(post.id); closeSidebar();
-}
-
-function loadPost(id) {
-  var post = posts.find(function(p){return p.id===id});
-  if (!post) return;
-  currentId = id;
-  document.getElementById('titleInput').value = post.title;
-  document.getElementById('editorContent').innerHTML = post.content;
-  document.getElementById('metaLine').textContent = timeAgo(post.updated)+' · '+(post.content?stripTags(post.content).length:0)+'자';
-  showScreen('editor'); updateWordCount(); renderSidebar();
-}
-
-function onEdit() {
-  updateWordCount();
-  document.querySelectorAll('#editorContent blockquote').forEach(function(bq){
-    if (!bq.style.borderLeftColor) bq.style.borderLeftColor = currentQuoteColor;
-  });
-}
-
-function updateWordCount() {
-  var text = stripTags(document.getElementById('editorContent').innerHTML);
-  document.getElementById('wordCount').textContent = text.length+'자';
-}
-
-function savePost() {
-  if (!currentId) return;
-  var post = posts.find(function(p){return p.id===currentId});
-  if (!post) return;
-  post.title = document.getElementById('titleInput').value;
-  post.content = document.getElementById('editorContent').innerHTML;
-  post.updated = Date.now();
-  var shareCode = post.shareCode || genShareCode();
-  post.shareCode = shareCode;
-  saveToDisk();
-
-  // Firebase 저장 (shareCode를 doc ID로 사용)
-  db.collection('posts').doc(shareCode).set({
-    title: post.title,
-    content: post.content,
-    created_at: post.created,
-    updated_at: post.updated,
-    original_id: post.id
+function savePost(){
+  if(!currentId)return;
+  var p=posts.find(function(x){return x.id===currentId});if(!p)return;
+  p.title=document.getElementById('titleInput').value;
+  p.content=document.getElementById('editorContent').innerHTML;
+  p.updated=Date.now();
+  if(!p.shareCode)p.shareCode=genCode();
+  savePostToServer(p).then(function(){
+    return publishSharedPost(p);
   }).then(function(){
-    showToast('저장 및 업로드 완료');
-  }).catch(function(err){
-    console.error(err);
-    showToast('로컬 저장 완료 (서버 실패)');
-  });
-
-  document.getElementById('metaLine').textContent = '방금 전 · '+stripTags(post.content).length+'자';
+    showToast('저장 완료');
+  }).catch(function(){showToast('저장 실패')});
+  document.getElementById('metaLine').textContent='방금 전 · '+stripTags(p.content).length+'자';
   renderSidebar();
 }
 
-function deletePost() {
-  if (!currentId) return;
-  if (!confirm('이 글을 삭제할까요?')) return;
-  var post = posts.find(function(p){return p.id===currentId});
-  if (post && post.shareCode) db.collection('posts').doc(post.shareCode).delete().catch(function(){});
-  posts = posts.filter(function(p){return p.id!==currentId});
-  saveToDisk(); currentId=null; showScreen('welcome'); renderSidebar(); showToast('삭제되었습니다');
+function deletePost(){
+  if(!currentId)return;if(!confirm('이 글을 삭제할까요?'))return;
+  var p=posts.find(function(x){return x.id===currentId});
+  if(p){deletePostFromServer(p.id);deleteSharedPost(p.shareCode)}
+  posts=posts.filter(function(x){return x.id!==currentId});
+  currentId=null;showScreen('welcome');renderSidebar();showToast('삭제되었습니다');
 }
 
-function saveToDisk() {
-  try { localStorage.setItem('ink_posts', JSON.stringify(posts)); } catch(e){}
-}
-
-// ══════════════════════════════════════
-// Share
-// ══════════════════════════════════════
-function sharePost() {
-  if (!currentId) return;
-  var post = posts.find(function(p){return p.id===currentId});
-  if (!post) return;
-  if (!post.title && !post.content) { showToast('먼저 글을 작성하고 저장하세요'); return; }
+// ═══ Share ═══
+function sharePost(){
+  if(!currentId)return;var p=posts.find(function(x){return x.id===currentId});if(!p||(!p.title&&!p.content)){showToast('먼저 글을 작성하고 저장하세요');return}
   savePost();
-  var shareCode = post.shareCode || genShareCode();
-  post.shareCode = shareCode; saveToDisk();
-  var url = window.location.origin + window.location.pathname + '#post=' + shareCode;
-  document.getElementById('shareUrlInput').value = url;
+  var url=window.location.origin+window.location.pathname+'#'+p.shareCode;
+  document.getElementById('shareUrlInput').value=url;
   document.getElementById('shareModal').classList.add('show');
 }
-function closeModal() { document.getElementById('shareModal').classList.remove('show'); }
-function copyShareUrl() {
-  var input = document.getElementById('shareUrlInput'); input.select();
-  try { navigator.clipboard.writeText(input.value); } catch(e) { document.execCommand('copy'); }
-  showToast('링크가 복사되었습니다');
-}
-function shareToSNS(platform) {
-  var url = document.getElementById('shareUrlInput').value;
-  var post = posts.find(function(p){return p.id===currentId});
-  var title = encodeURIComponent(post?post.title||'Ink':'Ink');
-  var shareUrl = '';
-  if (platform==='twitter') shareUrl='https://twitter.com/intent/tweet?url='+encodeURIComponent(url)+'&text='+title;
-  if (platform==='facebook') shareUrl='https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(url);
-  if (platform==='kakao') shareUrl='https://story.kakao.com/share?url='+encodeURIComponent(url);
-  if (shareUrl) window.open(shareUrl,'_blank','width=600,height=500');
+function closeModal(){document.getElementById('shareModal').classList.remove('show')}
+function copyShareUrl(){var i=document.getElementById('shareUrlInput');i.select();try{navigator.clipboard.writeText(i.value)}catch(e){document.execCommand('copy')}showToast('링크가 복사되었습니다')}
+function shareToSNS(platform){
+  var url=document.getElementById('shareUrlInput').value,p=posts.find(function(x){return x.id===currentId}),title=encodeURIComponent(p?p.title||'Ink':'Ink'),su='';
+  if(platform==='twitter')su='https://twitter.com/intent/tweet?url='+encodeURIComponent(url)+'&text='+title;
+  if(platform==='facebook')su='https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(url);
+  if(platform==='kakao')su='https://story.kakao.com/share?url='+encodeURIComponent(url);
+  if(su)window.open(su,'_blank','width=600,height=500');
 }
 
-// ══════════════════════════════════════
-// Reader
-// ══════════════════════════════════════
-function loadSharedPost(code) {
+// ═══ Reader ═══
+function loadSharedPost(code){
   showScreen('reader');
-  var body = document.getElementById('readerBody');
-  body.innerHTML = '<div class="reader-loading">불러오는 중…</div>';
-  db.collection('posts').doc(code).get().then(function(doc){
-    if (doc.exists) {
-      var data = doc.data();
-      body.innerHTML =
-        '<h1 class="reader-title">'+esc(data.title||'제목 없음')+'</h1>'
-        +'<div class="reader-content">'+(data.content||'')+'</div>';
-      var rc = body.querySelector('.reader-content');
-      if (rc) {
-        rc.addEventListener('copy', function(e){e.preventDefault()});
-        rc.addEventListener('dragstart', function(e){e.preventDefault()});
-      }
-      var rt = body.querySelector('.reader-title');
-      if (rt) {
-        rt.addEventListener('copy', function(e){e.preventDefault()});
-        rt.addEventListener('dragstart', function(e){e.preventDefault()});
-      }
-    } else {
-      body.innerHTML = '<div class="reader-not-found"><h2>글을 찾을 수 없어요</h2><p>삭제되었거나 아직 저장되지 않은 글이에요.</p></div>';
-    }
-  }).catch(function(){
-    body.innerHTML = '<div class="reader-not-found"><h2>불러오기 실패</h2><p>네트워크 연결을 확인해주세요.</p></div>';
-  });
+  var body=document.getElementById('readerBody');
+  body.innerHTML='<div class="reader-loading">불러오는 중…</div>';
+  db.collection('shared').doc(code).get().then(function(doc){
+    if(doc.exists){
+      var d=doc.data();
+      body.innerHTML='<h1 class="reader-title">'+esc(d.title||'제목 없음')+'</h1><div class="reader-content">'+(d.content||'')+'</div>';
+      var rc=body.querySelector('.reader-content');if(rc){rc.addEventListener('copy',function(e){e.preventDefault()});rc.addEventListener('dragstart',function(e){e.preventDefault()})}
+      var rt=body.querySelector('.reader-title');if(rt){rt.addEventListener('copy',function(e){e.preventDefault()});rt.addEventListener('dragstart',function(e){e.preventDefault()})}
+    }else{body.innerHTML='<div class="reader-not-found"><h2>글을 찾을 수 없어요</h2><p>삭제되었거나 아직 저장되지 않은 글이에요.</p></div>'}
+  }).catch(function(){body.innerHTML='<div class="reader-not-found"><h2>불러오기 실패</h2><p>네트워크 연결을 확인해주세요.</p></div>'});
 }
 
-// ══════════════════════════════════════
-// Editor Commands
-// ══════════════════════════════════════
-function execCmd(cmd) { document.execCommand(cmd,false,null); document.getElementById('editorContent').focus(); onEdit(); }
-function execBlock(tag) { document.execCommand('formatBlock',false,'<'+tag+'>'); document.getElementById('editorContent').focus(); onEdit(); }
-function insertQuote() {
-  document.execCommand('formatBlock',false,'<blockquote>');
-  setTimeout(function(){ document.querySelectorAll('#editorContent blockquote').forEach(function(bq){ if (!bq.style.borderLeftColor) bq.style.borderLeftColor=currentQuoteColor; }); },10);
-  document.getElementById('editorContent').focus(); onEdit();
-}
-function insertCode() { document.execCommand('formatBlock',false,'<pre>'); document.getElementById('editorContent').focus(); onEdit(); }
-function insertHR() { document.execCommand('insertHTML',false,'<hr><p><br></p>'); document.getElementById('editorContent').focus(); onEdit(); }
-function insertLink() { var url=prompt('링크 URL을 입력하세요:','https://'); if(url){document.execCommand('createLink',false,url); onEdit();} }
-function insertImage() {
-  var input=document.createElement('input'); input.type='file'; input.accept='image/*'; input.style.display='none';
-  document.body.appendChild(input);
-  input.addEventListener('change',function(){
-    var file=input.files[0]; if(!file){document.body.removeChild(input);return;}
-    if(file.size>5*1024*1024){showToast('이미지는 5MB 이하만 가능해요');document.body.removeChild(input);return;}
-    var reader=new FileReader();
-    reader.onload=function(e){restoreSelection();document.execCommand('insertHTML',false,'<img src="'+e.target.result+'" alt="image" style="max-width:100%;border-radius:6px;margin:12px 0;"><p><br></p>');onEdit();document.body.removeChild(input);};
-    reader.readAsDataURL(file);
-  });
-  input.click();
-}
+// ═══ Editor commands ═══
+function execCmd(c){document.execCommand(c,false,null);document.getElementById('editorContent').focus();onEdit()}
+function execBlock(t){document.execCommand('formatBlock',false,'<'+t+'>');document.getElementById('editorContent').focus();onEdit()}
+function insertQuote(){document.execCommand('formatBlock',false,'<blockquote>');setTimeout(function(){document.querySelectorAll('#editorContent blockquote').forEach(function(bq){if(!bq.style.borderLeftColor)bq.style.borderLeftColor=currentQuoteColor})},10);document.getElementById('editorContent').focus();onEdit()}
+function insertCode(){document.execCommand('formatBlock',false,'<pre>');document.getElementById('editorContent').focus();onEdit()}
+function insertHR(){document.execCommand('insertHTML',false,'<hr><p><br></p>');document.getElementById('editorContent').focus();onEdit()}
+function insertLink(){var u=prompt('링크 URL:','https://');if(u){document.execCommand('createLink',false,u);onEdit()}}
+function insertImage(){var i=document.createElement('input');i.type='file';i.accept='image/*';i.style.display='none';document.body.appendChild(i);i.addEventListener('change',function(){var f=i.files[0];if(!f){document.body.removeChild(i);return}if(f.size>5e6){showToast('5MB 이하만 가능');document.body.removeChild(i);return}var r=new FileReader;r.onload=function(e){restoreSelection();document.execCommand('insertHTML',false,'<img src="'+e.target.result+'" style="max-width:100%;border-radius:6px;margin:12px 0"><p><br></p>');onEdit();document.body.removeChild(i)};r.readAsDataURL(f)});i.click()}
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOverlay').classList.toggle('show')}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('show')}
-function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2200)}
+function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2200)}
 
 document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();savePost()}});
 document.getElementById('shareModal').addEventListener('click',function(e){if(e.target===e.currentTarget)closeModal()});
 
-// Image drag & drop + paste
-var editorEl = document.getElementById('editorContent');
-function handleImageFile(file){
-  if(!file||!file.type.startsWith('image/'))return;
-  if(file.size>5*1024*1024){showToast('이미지는 5MB 이하만 가능해요');return;}
-  var reader=new FileReader();
-  reader.onload=function(e){document.execCommand('insertHTML',false,'<img src="'+e.target.result+'" alt="image" style="max-width:100%;border-radius:6px;margin:12px 0;"><p><br></p>');onEdit()};
-  reader.readAsDataURL(file);
-}
-editorEl.addEventListener('drop',function(e){e.preventDefault();if(e.dataTransfer&&e.dataTransfer.files)for(var i=0;i<e.dataTransfer.files.length;i++)handleImageFile(e.dataTransfer.files[i])});
-editorEl.addEventListener('dragover',function(e){e.preventDefault()});
-editorEl.addEventListener('paste',function(e){var items=e.clipboardData&&e.clipboardData.items;if(!items)return;for(var i=0;i<items.length;i++){if(items[i].type.startsWith('image/')){e.preventDefault();handleImageFile(items[i].getAsFile());return}}});
+// Image drag/drop/paste
+var edEl=document.getElementById('editorContent');
+function handleImg(f){if(!f||!f.type.startsWith('image/'))return;if(f.size>5e6){showToast('5MB 이하만 가능');return}var r=new FileReader;r.onload=function(e){document.execCommand('insertHTML',false,'<img src="'+e.target.result+'" style="max-width:100%;border-radius:6px;margin:12px 0"><p><br></p>');onEdit()};r.readAsDataURL(f)}
+edEl.addEventListener('drop',function(e){e.preventDefault();if(e.dataTransfer)for(var i=0;i<e.dataTransfer.files.length;i++)handleImg(e.dataTransfer.files[i])});
+edEl.addEventListener('dragover',function(e){e.preventDefault()});
+edEl.addEventListener('paste',function(e){var it=e.clipboardData&&e.clipboardData.items;if(!it)return;for(var i=0;i<it.length;i++)if(it[i].type.startsWith('image/')){e.preventDefault();handleImg(it[i].getAsFile());return}});
 
-// ══════════════════════════════════════
-// Router
-// ══════════════════════════════════════
-function checkRoute() {
-  var hash = window.location.hash;
-  if (hash.startsWith('#post=')) {
-    loadSharedPost(hash.replace('#post=',''));
-  } else if (hash === '#' + SECRET_KEY) {
-    showScreen('welcome'); renderSidebar();
-  } else {
-    showScreen('landing');
+// ═══ Router ═══
+function checkRoute(){
+  var hash=window.location.hash.replace('#','');
+  if(!hash||hash===''){
+    showScreen('landing');return
   }
+  // 비밀키 → 로그인 페이지 또는 에디터
+  if(hash===SECRET){
+    if(currentUser){showScreen('welcome');renderSidebar()}
+    else{showScreen('login')}
+    return
+  }
+  // 8자리 영숫자 → 공유 글
+  if(/^[a-z2-9]{8}$/.test(hash)){
+    loadSharedPost(hash);return
+  }
+  showScreen('landing');
 }
-window.addEventListener('hashchange', checkRoute);
-checkRoute();
+window.addEventListener('hashchange',checkRoute);
 </script>
 </body>
 </html>
