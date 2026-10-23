@@ -1028,12 +1028,6 @@ function fPos(b, obj) {
   function move(x, y) {
     if (!st0) return;
     var dx = x - st0.x, dy = y - st0.y;
-    // dragging along an axis with no hidden area: zoom in a little so that axis can move
-    if (((st0.oy <= 4 && Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) || (st0.ox <= 4 && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy))) && zoomNum(obj.pz) < 300) {
-      obj.pz = Math.min(300, Math.max(zoomNum(obj.pz) + 20, 140));
-      apply(); start(x, y); soft();
-      return;
-    }
     if (st0.ox > 4) obj.px = posNum(st0.px - dx / st0.ox * 100);
     if (st0.oy > 4) obj.py = posNum(st0.py - dy / st0.oy * 100);
     apply(); soft();
