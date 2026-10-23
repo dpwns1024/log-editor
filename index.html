@@ -676,7 +676,7 @@ try {
   });
   fbAuth = firebase.auth();
   db = firebase.firestore();
-  try { st = firebase.storage(); } catch (e) {}
+  try { st = firebase.storage(); st.setMaxUploadRetryTime(8000); st.setMaxOperationRetryTime(8000); } catch (e) {}
 } catch (e) {}
 var OWNER_HASH = 'e6daada1c50fb0236415c1192d8bded9e6d3867e02f6d87d8cc3b2b3ba40d6d7';
 var SITE_DOC = 'eveden', IMG = {}, PENDING = {};
@@ -923,7 +923,7 @@ function fImg(b, label, obj, key, wide, maxW, ratio, note) {
         var id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
         IMG[id] = d; PENDING[id] = 1;
         obj[key] = 'img:' + id; url.value = ''; upd(); soft();
-        edStatus('사진 저장 공간 연결 실패 · 이 사이트 안에만 저장돼요 (' + ((e && e.code) || '') + ')');
+        edStatus('✓ 사진 넣음 · 저장을 눌러야 사이트에 반영돼요');
       }).then(function() { up.disabled = false; });
     });
   });
@@ -933,14 +933,21 @@ function fImg(b, label, obj, key, wide, maxW, ratio, note) {
   b.appendChild(box);
   upd();
 }
+var ST_DEAD = false;
 function uploadImg(d) {
-  if (!st) return Promise.reject({ code: 'storage/unavailable' });
+  if (!st || ST_DEAD) return Promise.reject({ code: 'storage/unavailable' });
   var p = d.split(','), type = p[0].match(/:(.*?);/)[1], bin = atob(p[1]), u = new Uint8Array(bin.length);
   for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
   var ext = (type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
   var ref = st.ref('eveden/' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) + '.' + ext);
-  return ref.put(new Blob([u], { type: type }), { contentType: type, cacheControl: 'public, max-age=31536000, immutable' })
+  var up = ref.put(new Blob([u], { type: type }), { contentType: type, cacheControl: 'public, max-age=31536000, immutable' })
     .then(function() { return ref.getDownloadURL(); });
+  var timeout = new Promise(function(_, no) { setTimeout(function() { no({ code: 'storage/timeout' }); }, 8000); });
+  return Promise.race([up, timeout]).catch(function(e) {
+    ST_DEAD = true;
+    try { up.cancel && up.cancel(); } catch (x) {}
+    throw e;
+  });
 }
 function readImg(f, maxW, ratio, cb) {
   var r = new FileReader();
