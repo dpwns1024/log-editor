@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/b/:file", "destination": "/api/b?f=:file" }
+  ]
+}
