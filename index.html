@@ -1,6 +1,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EVEDEN · ROOM 시안 C</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Saira+Semi+Condensed:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -229,6 +231,17 @@ body{
 #em-badge{padding:5px 10px;border:1px solid rgba(var(--acr),.5);background:rgba(5,7,12,.95);font:400 8.5px/1 'JetBrains Mono',monospace;letter-spacing:.22em;color:var(--ac);box-shadow:0 0 20px -6px rgba(var(--acr),.5)}
 #em-dl{padding:5px 10px;border:1px solid rgba(var(--okr),.5);background:rgba(5,7,12,.95);font:400 8.5px/1 'JetBrains Mono',monospace;letter-spacing:.22em;color:var(--ok);cursor:pointer;box-shadow:0 0 16px -6px rgba(var(--okr),.4)}
 #em-dl:hover{background:rgba(var(--okr),.08)}
+/* google login modal */
+#em-login{display:none;position:fixed;inset:0;z-index:400;background:rgba(3,5,8,.93);align-items:center;justify-content:center}
+#em-login.show{display:flex}
+.em-lbox{border:1px solid rgba(var(--acr),.22);background:#080c12;padding:32px 36px;text-align:center;max-width:300px;width:90%}
+.em-lbox h3{font:400 9px/1 'JetBrains Mono',monospace;letter-spacing:.28em;color:rgba(var(--acr),.5);margin-bottom:24px}
+#em-gbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px 16px;border:1px solid rgba(var(--acr),.28);background:rgba(var(--acr),.03);color:var(--tx);font:400 10px/1 'JetBrains Mono',monospace;letter-spacing:.18em;cursor:pointer;transition:all .2s;margin-bottom:10px}
+#em-gbtn:hover{border-color:rgba(var(--acr),.6);background:rgba(var(--acr),.08)}
+#em-gbtn svg{flex-shrink:0}
+#em-lerr{font:400 9px/1.6 'JetBrains Mono',monospace;color:var(--red);letter-spacing:.1em;min-height:14px;margin-bottom:10px}
+#em-cancel{font:400 8.5px/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:var(--dim);background:none;border:none;cursor:pointer;padding:4px}
+#em-cancel:hover{color:var(--mu)}
 
 @media(max-width:560px){
   .dir-hdr,.dir-item{grid-template-columns:22px 1fr 90px}
@@ -367,6 +380,17 @@ body{
   <div id="em-badge">✦ EDIT MODE</div>
   <div id="em-dl" onclick="saveToGH()">↑ GITHUB 저장</div>
 </div>
+<div id="em-login">
+  <div class="em-lbox">
+    <h3>ACCESS CONTROL · EDIT MODE</h3>
+    <button id="em-gbtn" onclick="doGoogleLogin()">
+      <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.5 33.8 30 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c10.5 0 20-7.8 20-21 0-1.4-.1-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.2 19.1 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3c-7.6 0-14.2 4.4-17.7 10.7z"/><path fill="#FBBC05" d="M24 45c5.4 0 10.3-1.8 14.1-4.9l-6.5-5.3C29.5 36.6 26.9 37 24 37c-5.9 0-10.9-3.2-13.5-7.9l-7 5.4C7.5 40.5 15.2 45 24 45z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8C34.5 33.8 30 37 24 37l-.1-.1-6.9 5.4C19 43.8 21.4 45 24 45c10.5 0 20-7.8 20-21 0-1.4-.1-2.7-.5-4z"/></svg>
+      Google로 로그인
+    </button>
+    <div id="em-lerr"></div>
+    <button id="em-cancel" onclick="closeLogin()">취소</button>
+  </div>
+</div>
 
 <script>
 var _t = [], _cur = null;
@@ -504,31 +528,60 @@ function acc(el) {
   });
 }
 
+/* ── Firebase auth ───────────────────────── */
+firebase.initializeApp({
+  apiKey:"AIzaSyCfeSRP4LNjALm1vG40qzpegQwgVyQEKbQ",
+  authDomain:"log-editor.firebaseapp.com",
+  projectId:"log-editor",
+  storageBucket:"log-editor.firebasestorage.app",
+  messagingSenderId:"281847580341",
+  appId:"1:281847580341:web:2556c1b5ebf22bdbc860fc"
+});
+var fbAuth = firebase.auth();
+var OWNER = 'a53607863@gmail.com';
+
 /* ── edit mode ───────────────────────────── */
 var EM = false, EM_READY = false;
 
 function toggleEM() {
-  if (!EM && !checkPIN()) return;
-  EM = !EM;
-  document.body.classList.toggle('em', EM);
   if (EM) {
-    if (!EM_READY) { emInject(); EM_READY = true; }
-    initEditable();
-  } else {
+    EM = false;
+    document.body.classList.remove('em');
     saveEM(); cleanEditable();
+  } else {
+    var user = fbAuth.currentUser;
+    if (user && user.email === OWNER) {
+      enterEM();
+    } else {
+      document.getElementById('em-login').classList.add('show');
+    }
   }
 }
 
-function checkPIN() {
-  var stored = localStorage.getItem('ev_pin');
-  if (!stored) {
-    var p1 = prompt('편집 모드 PIN 설정 (4자리 이상):');
-    if (!p1 || p1.length < 4) return false;
-    if (prompt('PIN 확인:') !== p1) { alert('PIN 불일치'); return false; }
-    localStorage.setItem('ev_pin', p1);
-    return true;
-  }
-  return prompt('PIN 입력:') === stored;
+function enterEM() {
+  EM = true;
+  document.body.classList.add('em');
+  if (!EM_READY) { emInject(); EM_READY = true; }
+  initEditable();
+}
+
+function doGoogleLogin() {
+  document.getElementById('em-lerr').textContent = '';
+  fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(function(r) {
+    if (r.user.email === OWNER) {
+      closeLogin();
+      enterEM();
+    } else {
+      fbAuth.signOut();
+      document.getElementById('em-lerr').textContent = '접근 권한이 없습니다.';
+    }
+  }).catch(function(e) {
+    document.getElementById('em-lerr').textContent = '로그인 실패: ' + (e.message || e.code || '');
+  });
+}
+
+function closeLogin() {
+  document.getElementById('em-login').classList.remove('show');
 }
 
 function mkIc() {
