@@ -680,20 +680,29 @@ try {
   fbAuth = firebase.auth();
   db = firebase.firestore();
 } catch (e) {}
-var OWNER = 'dpwns1024@gmail.com';
+var OWNER_HASH = 'e6daada1c50fb0236415c1192d8bded9e6d3867e02f6d87d8cc3b2b3ba40d6d7';
 var SITE_DOC = 'eveden', IMG = {}, PENDING = {};
 
+function isOwner(u) {
+  if (!u || !u.email) return Promise.resolve(false);
+  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(u.email.trim().toLowerCase())).then(function(b) {
+    return Array.from(new Uint8Array(b)).map(function(x) { return x.toString(16).padStart(2, '0'); }).join('') === OWNER_HASH;
+  });
+}
 function requestEdit() {
   if (!fbAuth || !db) { alert('로그인 모듈을 불러오지 못했어요. 새로고침해 주세요.'); return; }
-  var u = fbAuth.currentUser;
-  if (u && u.email === OWNER) openEditor();
-  else { $('em-lerr').textContent = ''; $('em-login').classList.add('show'); }
+  isOwner(fbAuth.currentUser).then(function(ok) {
+    if (ok) openEditor();
+    else { $('em-lerr').textContent = ''; $('em-login').classList.add('show'); }
+  });
 }
 function doGoogleLogin() {
   $('em-lerr').textContent = '';
   fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(function(r) {
-    if (r.user.email === OWNER) { closeLogin(); openEditor(); }
-    else { fbAuth.signOut(); $('em-lerr').textContent = '접근 권한이 없습니다.'; }
+    return isOwner(r.user).then(function(ok) {
+      if (ok) { closeLogin(); openEditor(); }
+      else { fbAuth.signOut(); $('em-lerr').textContent = '접근 권한이 없습니다.'; }
+    });
   }).catch(function(e) {
     $('em-lerr').textContent = '로그인 실패: ' + (e.message || e.code || '');
   });
@@ -1032,7 +1041,7 @@ function loadImgs() {
 }
 async function saveDB() {
   var u = fbAuth.currentUser;
-  if (!u || u.email !== OWNER) { edStatus('✕ 로그인이 풀렸어요 · 닫고 다시 열어 주세요'); return; }
+  if (!(await isOwner(u))) { edStatus('✕ 로그인이 풀렸어요 · 닫고 다시 열어 주세요'); return; }
   var btn = $('ed-save'), prev = DATA.updated;
   btn.disabled = true;
   edStatus('저장 중...');
