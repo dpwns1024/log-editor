@@ -1,5 +1,6 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EVEDEN · ROOM 시안 C</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Saira+Semi+Condensed:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -12,7 +13,8 @@
   color-scheme:dark;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
+html{height:100%;overflow-x:hidden}
+body{min-height:100%}
 body{
   background:var(--bg);color:var(--tx);
   font:400 13px/1.6 'JetBrains Mono','Noto Sans KR',monospace;
@@ -344,7 +346,7 @@ body{
 <div id="toast">CODE COPIED</div>
 <div id="em-bar">
   <div id="em-badge">✦ EDIT MODE</div>
-  <div id="em-dl" onclick="dlEM()">↓ HTML 다운로드</div>
+  <div id="em-dl" onclick="saveToGH()">↑ GITHUB 저장</div>
 </div>
 
 <script>
@@ -485,12 +487,25 @@ function acc(el) {
 
 /* ── edit mode ───────────────────────────── */
 var EM = false;
-var EM_SEL = '.fv,[data-e]';
 
 function toggleEM() {
+  if (!EM && !checkPIN()) return;
   EM = !EM;
   document.body.classList.toggle('em', EM);
   if (EM) { initEM(); } else { saveEM(); }
+}
+
+function checkPIN() {
+  var stored = localStorage.getItem('ev_pin');
+  if (!stored) {
+    var p1 = prompt('편집 모드 PIN 설정 (숫자 4자리):');
+    if (!p1 || p1.length < 4) return false;
+    var p2 = prompt('PIN 확인:');
+    if (p1 !== p2) { alert('PIN 불일치'); return false; }
+    localStorage.setItem('ev_pin', p1);
+    return true;
+  }
+  return prompt('PIN 입력:') === stored;
 }
 
 function initEM() {
@@ -531,13 +546,42 @@ function loadEM() {
   } catch(e) {}
 }
 
-function dlEM() {
+async function saveToGH() {
+  var token = localStorage.getItem('ev_gh_token');
+  if (!token) {
+    token = prompt('GitHub Personal Access Token\n(Settings → Developer settings → Fine-grained tokens\nContents: Read & Write 권한)');
+    if (!token) return;
+    localStorage.setItem('ev_gh_token', token);
+  }
   saveEM();
-  var blob = new Blob([document.documentElement.outerHTML], {type:'text/html'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'index.html';
-  a.click();
+  showToast2('GITHUB 저장 중...');
+
+  var clone = document.documentElement.cloneNode(true);
+  clone.querySelector('body').classList.remove('em');
+  clone.querySelectorAll('[contenteditable]').forEach(function(e){ e.removeAttribute('contenteditable'); });
+  clone.querySelectorAll('[data-e]').forEach(function(e){ e.removeAttribute('data-e'); });
+  var html = clone.outerHTML;
+  var b64 = btoa(encodeURIComponent(html).replace(/%([0-9A-F]{2})/gi, function(_,p){ return String.fromCharCode('0x'+p); }));
+
+  var api = 'https://api.github.com/repos/dpwns1024/log-editor/contents/index.html';
+  try {
+    var meta = await fetch(api, { headers:{ Authorization:'Bearer '+token } }).then(function(r){ return r.json(); });
+    if (!meta.sha) { localStorage.removeItem('ev_gh_token'); showToast2('TOKEN ERROR'); return; }
+    var res = await fetch(api, {
+      method:'PUT',
+      headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/json' },
+      body:JSON.stringify({ message:'content: site update', content:b64, sha:meta.sha })
+    });
+    showToast2(res.ok ? '↑ GITHUB 저장 완료' : 'ERROR · '+res.status);
+    if (res.status === 401) localStorage.removeItem('ev_gh_token');
+  } catch(e) { showToast2('NETWORK ERROR'); }
+}
+
+function showToast2(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); setTimeout(function(){ t.textContent='CODE COPIED'; },300); }, 2500);
 }
 
 /* auto-load saved content on page start */
