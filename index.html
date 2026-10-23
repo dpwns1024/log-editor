@@ -992,17 +992,24 @@ function readImg(f, maxW, ratio, cb) {
 function fPos(b, obj) {
   var box = el('div', 'ed-f ed-live'), s = el('span'), fr = el('div', 'ed-pos'), im = el('img'), row = el('div', 'ed-posbar'), reset = el('button', 'ed-btn'), n = el('div', 'ed-note');
   var zrow = el('label', 'ed-posbar'), zl = el('span', 'ed-note'), zin = el('input', 'ed-zoom');
-  s.textContent = '배너 위치 (확대한 뒤 사진을 손가락·마우스로 끌어서 맞춰요)';
+  s.textContent = '배너 위치 (사진을 손가락·마우스로 끌어서 맞춰요)';
   reset.type = 'button'; reset.textContent = '처음대로';
   zin.type = 'range'; zin.min = 100; zin.max = 300; zin.step = 5;
   fr.appendChild(im); zrow.appendChild(zl); zrow.appendChild(zin); row.appendChild(reset); row.appendChild(n);
   box.appendChild(s); box.appendChild(fr); box.appendChild(zrow); box.appendChild(row); b.appendChild(box);
+  function room() {
+    if (!im.naturalWidth) return null;
+    var fw = fr.clientWidth, fh = fr.clientHeight, k = Math.max(fw / im.naturalWidth, fh / im.naturalHeight), z = zoomNum(obj.pz) / 100;
+    return { ox: z * (im.naturalWidth * k - fw) + (z - 1) * fw, oy: z * (im.naturalHeight * k - fh) + (z - 1) * fh };
+  }
   function apply() {
     im.style.cssText = posCss(obj);
     zin.value = zoomNum(obj.pz);
     zl.textContent = '확대 ' + zoomNum(obj.pz) + '%';
-    n.textContent = '가로 ' + posNum(obj.px) + '% · 세로 ' + posNum(obj.py) + '%';
+    var r = room(), lock = r && r.oy <= 4 ? ' · 위아래는 확대하면 움직여요' : r && r.ox <= 4 ? ' · 좌우는 확대하면 움직여요' : '';
+    n.textContent = '가로 ' + posNum(obj.px) + '% · 세로 ' + posNum(obj.py) + '%' + lock;
   }
+  im.addEventListener('load', apply);
   zin.addEventListener('input', function() { obj.pz = zoomNum(zin.value); apply(); soft(); });
   box._upd = function() {
     var u = imgUrl(obj.img);
@@ -1012,17 +1019,23 @@ function fPos(b, obj) {
   };
   var st0 = null;
   function start(x, y) {
-    if (!im.naturalWidth) return false;
-    var fw = fr.clientWidth, fh = fr.clientHeight, k = Math.max(fw / im.naturalWidth, fh / im.naturalHeight), z = zoomNum(obj.pz) / 100;
-    st0 = { x: x, y: y, px: posNum(obj.px), py: posNum(obj.py),
-      ox: z * (im.naturalWidth * k - fw) + (z - 1) * fw, oy: z * (im.naturalHeight * k - fh) + (z - 1) * fh };
+    var r = room();
+    if (!r) return false;
+    st0 = { x: x, y: y, px: posNum(obj.px), py: posNum(obj.py), ox: r.ox, oy: r.oy };
     fr.classList.add('drag');
     return true;
   }
   function move(x, y) {
     if (!st0) return;
-    if (st0.ox > 4) obj.px = posNum(st0.px - (x - st0.x) / st0.ox * 100);
-    if (st0.oy > 4) obj.py = posNum(st0.py - (y - st0.y) / st0.oy * 100);
+    var dx = x - st0.x, dy = y - st0.y;
+    // dragging along an axis with no hidden area: zoom in a little so that axis can move
+    if (((st0.oy <= 4 && Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) || (st0.ox <= 4 && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy))) && zoomNum(obj.pz) < 300) {
+      obj.pz = Math.min(300, Math.max(zoomNum(obj.pz) + 20, 140));
+      apply(); start(x, y); soft();
+      return;
+    }
+    if (st0.ox > 4) obj.px = posNum(st0.px - dx / st0.ox * 100);
+    if (st0.oy > 4) obj.py = posNum(st0.py - dy / st0.oy * 100);
     apply(); soft();
   }
   function end() { st0 = null; fr.classList.remove('drag'); }
