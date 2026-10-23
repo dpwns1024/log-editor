@@ -266,6 +266,11 @@ select.ed-in{padding-right:38px;background:#03050a url("data:image/svg+xml,%3Csv
 .ed-img{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ed-thumb{flex:none;width:64px;aspect-ratio:3/4;border:1px solid var(--ln2);background:#0b1016 center/cover no-repeat}
 .ed-thumb.wide{width:130px;aspect-ratio:5/1}
+.ed-pos{position:relative;width:100%;aspect-ratio:5/1;border:1px solid var(--ln2);background:#0b1016;overflow:hidden;cursor:grab;touch-action:none}
+.ed-posbar{display:flex;align-items:center;gap:12px;margin-top:8px}
+.ed-posbar .ed-note{margin-top:0}
+.ed-pos.drag{cursor:grabbing;border-color:rgba(var(--acr),.6)}
+.ed-pos img{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none;-webkit-user-drag:none;user-select:none}
 .ed-btn{height:42px;padding:0 16px;border:1px solid var(--ln2);background:transparent;color:var(--tx);font:400 13px/1 'Noto Sans KR',sans-serif;letter-spacing:.2em;cursor:pointer;white-space:nowrap}
 .ed-btn:hover{border-color:rgba(var(--acr),.55)}
 .ed-btn:disabled{opacity:.35;cursor:default}
@@ -563,7 +568,7 @@ var R = {
   },
   banner: function(s) {
     var u = imgUrl(s.img), href = linkUrl(s.link), pub = shareUrl(s.img);
-    var img = u ? '<img src="' + u + '" alt="">' : '<span>BANNER · 이미지 준비 중</span>';
+    var img = u ? '<img src="' + u + '" alt=""' + objPos(s) + '>' : '<span>BANNER · 이미지 준비 중</span>';
     if (u && href) img = '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + img + '</a>';
     return '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">' +
       '<span style="font:400 9px/1 \'JetBrains Mono\',monospace;letter-spacing:.26em;color:var(--mu)">' + esc(s.label) + '</span>' +
@@ -573,7 +578,7 @@ var R = {
   links: function(s) {
     return '<div class="bn-grid">' + (s.items || []).map(function(it) {
       var u = it.empty ? '' : imgUrl(it.img), href = it.empty ? '' : linkUrl(it.link);
-      var inner = u ? '<img src="' + u + '" alt="">' : '<span style="font-size:8px">' + (it.empty ? 'EMPTY SLOT' : '배너 이미지') + '</span>';
+      var inner = u ? '<img src="' + u + '" alt=""' + objPos(it) + '>' : '<span style="font-size:8px">' + (it.empty ? 'EMPTY SLOT' : '배너 이미지') + '</span>';
       if (u && href) inner = '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + inner + '</a>';
       return '<div class="bn-slot"' + (it.empty ? ' style="opacity:.4"' : '') + '><div class="bn-frame' + (u ? ' has-img' : '') + '">' + inner + '</div>' +
         (!it.empty && it.name ? '<div class="bn-who"><b>' + esc(it.name) + '</b></div>' : '') +
@@ -581,6 +586,11 @@ var R = {
     }).join('') + '</div>';
   }
 };
+function posNum(v) { v = parseFloat(v); return isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : 50; }
+function objPos(o) {
+  var x = posNum(o.px), y = posNum(o.py);
+  return x === 50 && y === 50 ? '' : ' style="object-position:' + x + '% ' + y + '%"';
+}
 function shareUrl(v) {
   v = String(v || '').trim();
   if (!/^https?:\/\//i.test(v)) return '';
@@ -791,6 +801,7 @@ function draft() {
 function soft() {
   ED.dirty = true; edStatus();
   document.querySelectorAll('#ed details').forEach(function(d) { if (d._lbl) d._lbl(); });
+  document.querySelectorAll('#ed .ed-live').forEach(function(d) { d._upd(); });
   clearTimeout(ED.t);
   ED.t = setTimeout(function() { renderSite(); draft(); }, 200);
 }
@@ -973,6 +984,41 @@ function readImg(f, maxW, ratio, cb) {
   };
   r.readAsDataURL(f);
 }
+function fPos(b, obj) {
+  var box = el('div', 'ed-f ed-live'), s = el('span'), fr = el('div', 'ed-pos'), im = el('img'), row = el('div', 'ed-posbar'), reset = el('button', 'ed-btn'), n = el('div', 'ed-note');
+  s.textContent = '배너 위치 (사진을 손가락·마우스로 끌어서 맞춰요)';
+  reset.type = 'button'; reset.textContent = '가운데로';
+  fr.appendChild(im); row.appendChild(reset); row.appendChild(n);
+  box.appendChild(s); box.appendChild(fr); box.appendChild(row); b.appendChild(box);
+  function apply() { im.style.objectPosition = posNum(obj.px) + '% ' + posNum(obj.py) + '%'; n.textContent = '가로 ' + posNum(obj.px) + '% · 세로 ' + posNum(obj.py) + '%'; }
+  box._upd = function() {
+    var u = imgUrl(obj.img);
+    box.style.display = u ? '' : 'none';
+    if (u && im.getAttribute('src') !== u) im.src = u;
+    apply();
+  };
+  var st0 = null;
+  fr.addEventListener('pointerdown', function(e) {
+    if (!im.naturalWidth) return;
+    var fw = fr.clientWidth, fh = fr.clientHeight, k = Math.max(fw / im.naturalWidth, fh / im.naturalHeight);
+    st0 = { x: e.clientX, y: e.clientY, px: posNum(obj.px), py: posNum(obj.py), ox: im.naturalWidth * k - fw, oy: im.naturalHeight * k - fh };
+    fr.classList.add('drag');
+    fr.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  fr.addEventListener('pointermove', function(e) {
+    if (!st0) return;
+    if (st0.ox > 1) obj.px = Math.max(0, Math.min(100, st0.px - (e.clientX - st0.x) / st0.ox * 100));
+    if (st0.oy > 1) obj.py = Math.max(0, Math.min(100, st0.py - (e.clientY - st0.y) / st0.oy * 100));
+    obj.px = posNum(obj.px); obj.py = posNum(obj.py);
+    apply(); soft();
+  });
+  function end() { st0 = null; fr.classList.remove('drag'); }
+  fr.addEventListener('pointerup', end);
+  fr.addEventListener('pointercancel', end);
+  reset.addEventListener('click', function() { obj.px = 50; obj.py = 50; apply(); soft(); });
+  box._upd();
+}
 function sub(b, txt) { var d = el('div', 'ed-sub'); d.textContent = txt; b.appendChild(d); }
 
 function edRoom(b, r) {
@@ -1058,14 +1104,15 @@ var EDS = {
   },
   banner: function(b, s) {
     fText(b, '위 작은 글씨', s, 'label');
-    fImg(b, '배너 이미지 (200×40 비율로 자동으로 잘려요)', s, 'img', true, 400, 5,
-      '사진을 올리면 이미지 주소가 자동으로 생겨요. 사이트의 COPY URL 버튼으로 복사할 수 있어요.');
+    fImg(b, '배너 이미지 (200×40 비율로 보여요)', s, 'img', true, 1000);
+    fPos(b, s);
     fText(b, '배너 클릭 시 이동 주소 (선택)', s, 'link');
   },
   links: function(b, s) {
     sub(b, '배너');
     b.appendChild(edList(s.items, function(it, i) { return (i + 1) + ' — ' + (it.empty ? '빈 칸' : (it.name || '닉네임')); }, function(b, it) {
-      fImg(b, '배너 이미지 (200×40 비율로 자동으로 잘려요)', it, 'img', true, 400, 5);
+      fImg(b, '배너 이미지 (200×40 비율로 보여요)', it, 'img', true, 1000);
+      fPos(b, it);
       fText(b, '닉네임', it, 'name');
       fText(b, '링크 주소', it, 'link');
       fChk(b, '빈 칸으로 표시', it, 'empty');
