@@ -4,6 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Saira+Semi+Condensed:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -667,7 +668,7 @@ function acc(el) {
 }
 
 /* ── Firebase auth ───────────────────────── */
-var fbAuth = null, db = null;
+var fbAuth = null, db = null, st = null;
 try {
   firebase.initializeApp({
     apiKey:"AIzaSyCfeSRP4LNjALm1vG40qzpegQwgVyQEKbQ",
@@ -679,6 +680,7 @@ try {
   });
   fbAuth = firebase.auth();
   db = firebase.firestore();
+  try { st = firebase.storage(); } catch (e) {}
 } catch (e) {}
 var OWNER_HASH = 'e6daada1c50fb0236415c1192d8bded9e6d3867e02f6d87d8cc3b2b3ba40d6d7';
 var SITE_DOC = 'eveden', IMG = {}, PENDING = {};
@@ -888,9 +890,17 @@ function fImg(b, label, obj, key, wide, maxW, ratio, note) {
     file.value = '';
     if (!f) return;
     readImg(f, maxW || 600, ratio, function(d) {
-      var id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-      IMG[id] = d; PENDING[id] = 1;
-      obj[key] = 'img:' + id; url.value = ''; upd(); soft();
+      up.disabled = true;
+      edStatus('사진 올리는 중...');
+      uploadImg(d).then(function(u) {
+        obj[key] = u; url.value = u; upd(); soft();
+        edStatus('✓ 사진 올림 · 저장을 눌러야 사이트에 반영돼요');
+      }).catch(function(e) {
+        var id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+        IMG[id] = d; PENDING[id] = 1;
+        obj[key] = 'img:' + id; url.value = ''; upd(); soft();
+        edStatus('사진 저장 공간 연결 실패 · 이 사이트 안에만 저장돼요 (' + ((e && e.code) || '') + ')');
+      }).then(function() { up.disabled = false; });
     });
   });
   row.appendChild(th); row.appendChild(up); row.appendChild(rm); row.appendChild(file);
@@ -898,6 +908,15 @@ function fImg(b, label, obj, key, wide, maxW, ratio, note) {
   if (note) { var n = el('div', 'ed-note'); n.textContent = note; box.appendChild(n); }
   b.appendChild(box);
   upd();
+}
+function uploadImg(d) {
+  if (!st) return Promise.reject({ code: 'storage/unavailable' });
+  var p = d.split(','), type = p[0].match(/:(.*?);/)[1], bin = atob(p[1]), u = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  var ext = (type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+  var ref = st.ref('eveden/' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) + '.' + ext);
+  return ref.put(new Blob([u], { type: type }), { contentType: type, cacheControl: 'public, max-age=31536000, immutable' })
+    .then(function() { return ref.getDownloadURL(); });
 }
 function readImg(f, maxW, ratio, cb) {
   var r = new FileReader();
@@ -1009,7 +1028,7 @@ var EDS = {
   banner: function(b, s) {
     fText(b, '위 작은 글씨', s, 'label');
     fImg(b, '배너 이미지 (200×40 비율로 자동으로 잘려요)', s, 'img', true, 400, 5,
-      '올린 사진은 이 사이트에서만 보여요. 다른 사이트에 붙일 코드에는 이미지 주소(https://...)가 필요해요.');
+      '사진을 올리면 주소가 자동으로 생기고 임베드 코드에도 들어가요.');
     fText(b, '배너 클릭 시 이동 주소 (비우면 이 사이트 주소)', s, 'link');
   },
   code: function(b, s) {
