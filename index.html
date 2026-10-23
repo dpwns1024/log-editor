@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>EVEDEN · ROOM 시안 C</title>
+<title>EVEDEN</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -593,6 +593,7 @@ function renderSite() {
   $('dir').innerHTML = DATA.rooms.map(function(r, i) {
     return '<div class="dir-item" data-i="' + i + '" onclick="acc(this)"><span class="d-num">' + pad(i + 1) + '</span><span class="d-name">' + esc(r.name) + '</span><span class="d-type"></span></div>';
   }).join('');
+  document.title = (DATA.title || '').trim() || 'EVEDEN';
   $('total').textContent = 'total ' + DATA.rooms.length + ' entries · ' + (DATA.updated || '');
   $('rooms').innerHTML = DATA.rooms.map(function(r, i) {
     return '<div class="dc" id="r-' + i + '">' + (r.sections || []).map(function(s) { return renderSec(s, r); }).join('') + '</div>';
@@ -765,6 +766,7 @@ function hard() {
 function edRender() {
   var box = $('ed-rooms'), sc = $('ed').scrollTop;
   box.innerHTML = '';
+  fText(box, '사이트 이름 (브라우저 탭·즐겨찾기에 보이는 이름)', DATA, 'title').placeholder = 'EVEDEN';
   box.appendChild(edList(DATA.rooms, function(r) { return (r.name || '(이름 없음)') + ' — ' + (r.sections || []).length + '섹션'; },
     edRoom, function() { return { name:'NEW', sections:[] }; }, '방 추가'));
   $('ed').scrollTop = sc;
