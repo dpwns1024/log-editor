@@ -212,7 +212,7 @@ body{
 .bn-frame img{display:block;width:100%;height:100%;object-fit:cover}
 .bn-frame a{display:block;width:100%;height:100%}
 .bn-who a{color:var(--ac);text-decoration:none}
-.tbar-dots{padding:6px;margin:-6px;touch-action:manipulation}
+.tbar-dots{padding:12px;margin:-12px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 
 /* editor panel */
 #ed{display:none;position:fixed;inset:0;z-index:300;background:rgba(3,5,8,.88);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:24px 12px 0;overscroll-behavior:contain}
@@ -291,7 +291,7 @@ select.ed-in{padding-right:38px;background:#03050a url("data:image/svg+xml,%3Csv
 
 <div class="wrap"><div class="inner">
   <div class="tbar">
-    <div class="tbar-dots" ondblclick="requestEdit()"><span></span><span></span><span></span></div>
+    <div class="tbar-dots"><span></span><span></span><span></span></div>
     <div class="tbar-title">eveden@system — /eveden/rooms — bash</div>
   </div>
   <div class="term">
@@ -645,20 +645,24 @@ function acc(el) {
 }
 
 /* ── Firebase auth ───────────────────────── */
-firebase.initializeApp({
-  apiKey:"AIzaSyCfeSRP4LNjALm1vG40qzpegQwgVyQEKbQ",
-  authDomain:"log-editor.firebaseapp.com",
-  projectId:"log-editor",
-  storageBucket:"log-editor.firebasestorage.app",
-  messagingSenderId:"281847580341",
-  appId:"1:281847580341:web:2556c1b5ebf22bdbc860fc"
-});
-var fbAuth = firebase.auth();
-var db = firebase.firestore();
+var fbAuth = null, db = null;
+try {
+  firebase.initializeApp({
+    apiKey:"AIzaSyCfeSRP4LNjALm1vG40qzpegQwgVyQEKbQ",
+    authDomain:"log-editor.firebaseapp.com",
+    projectId:"log-editor",
+    storageBucket:"log-editor.firebasestorage.app",
+    messagingSenderId:"281847580341",
+    appId:"1:281847580341:web:2556c1b5ebf22bdbc860fc"
+  });
+  fbAuth = firebase.auth();
+  db = firebase.firestore();
+} catch (e) {}
 var OWNER = 'dpwns1024@gmail.com';
 var SITE_DOC = 'eveden', IMG = {}, PENDING = {};
 
 function requestEdit() {
+  if (!fbAuth || !db) { alert('로그인 모듈을 불러오지 못했어요. 새로고침해 주세요.'); return; }
   var u = fbAuth.currentUser;
   if (u && u.email === OWNER) openEditor();
   else { $('em-lerr').textContent = ''; $('em-login').classList.add('show'); }
@@ -1048,14 +1052,26 @@ document.addEventListener('keydown', function(e) {
 try { ['ev_r-info', 'ev_r-list', 'ev_r-banner', 'ev_pin', 'ev_gh_token'].forEach(function(k) { localStorage.removeItem(k); }); } catch (e) {}
 var _booted = false;
 function boot() { if (!_booted) { _booted = true; renderSite(); } }
-setTimeout(boot, 3000);
-db.collection('site').doc(SITE_DOC).get().then(function(d) {
-  if (d.exists && d.data().json && !$('ed').classList.contains('show')) DATA = JSON.parse(d.data().json);
-}).catch(function() {}).then(function() {
-  if (_booted) renderSite(); else boot();
-  return loadImgs();
-}).then(renderSite);
-if (location.hash === '#edit') {
+if (!db) boot();
+else {
+  setTimeout(boot, 3000);
+  db.collection('site').doc(SITE_DOC).get().then(function(d) {
+    if (d.exists && d.data().json && !$('ed').classList.contains('show')) DATA = JSON.parse(d.data().json);
+  }).catch(function() {}).then(function() {
+    if (_booted) renderSite(); else boot();
+    return loadImgs();
+  }).then(renderSite);
+}
+(function() {
+  var n = 0, last = 0;
+  document.querySelector('.tbar-dots').addEventListener('click', function() {
+    var now = Date.now();
+    n = now - last < 700 ? n + 1 : 1;
+    last = now;
+    if (n >= 2) { n = 0; requestEdit(); }
+  });
+})();
+if (fbAuth && location.hash === '#edit') {
   var _off = fbAuth.onAuthStateChanged(function() { _off(); requestEdit(); });
 }
 </script>
