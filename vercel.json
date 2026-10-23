@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/b/:file", "destination": "https://firebasestorage.googleapis.com/v0/b/log-editor.firebasestorage.app/o/eveden%2F:file?alt=media" }
+  ]
+}

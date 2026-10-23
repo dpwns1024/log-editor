@@ -190,8 +190,6 @@ body{
 .bn-frame::before{left:-1px;top:-1px;border-width:1px 0 0 1px}
 .bn-frame::after{right:-1px;bottom:-1px;border-width:0 1px 1px 0}
 .bn-frame span{font:400 9px/1 'JetBrains Mono',monospace;letter-spacing:.24em;color:var(--dim)}
-.bn-url{width:400px;max-width:100%;margin-top:10px;padding:9px 12px;border:1px solid var(--ln);font:400 10.5px/1.6 'JetBrains Mono',monospace;color:#8a9bb0;word-break:break-all;-webkit-user-select:all;user-select:all}
-.bn-url.none{color:var(--dim);-webkit-user-select:none;user-select:none}
 .btn{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px;border:1px solid var(--ln2);background:rgba(255,255,255,.02);font:400 9px/1 'JetBrains Mono',monospace;letter-spacing:.26em;color:var(--tx);cursor:pointer;transition:all .25s;position:relative}
 .btn:hover{border-color:rgba(var(--acr),.6);color:#fff;box-shadow:0 0 20px -6px rgba(var(--acr),.5)}
 .btn::before,.btn::after{content:'';position:absolute;width:5px;height:5px;border-color:var(--ac);border-style:solid}
@@ -555,14 +553,13 @@ var R = {
     }).join('') + '</div>';
   },
   banner: function(s) {
-    var u = imgUrl(s.img), href = linkUrl(s.link), pub = /^https?:\/\//i.test(String(s.img || '').trim()) ? String(s.img).trim() : '';
+    var u = imgUrl(s.img), href = linkUrl(s.link), pub = shareUrl(s.img);
     var img = u ? '<img src="' + u + '" alt="">' : '<span>BANNER · 이미지 준비 중</span>';
     if (u && href) img = '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + img + '</a>';
     return '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">' +
       '<span style="font:400 9px/1 \'JetBrains Mono\',monospace;letter-spacing:.26em;color:var(--mu)">' + esc(s.label) + '</span>' +
-      '<button class="btn" onclick="copyUrl(this)">COPY URL</button></div>' +
-      '<div class="bn-frame' + (u ? ' has-img' : '') + '">' + img + '</div>' +
-      '<div class="bn-url' + (pub ? '' : ' none') + '">' + esc(pub || NO_SRC) + '</div>';
+      '<button class="btn" data-u="' + esc(pub) + '" onclick="copyUrl(this)">COPY URL</button></div>' +
+      '<div class="bn-frame' + (u ? ' has-img' : '') + '">' + img + '</div>';
   },
   links: function(s) {
     return '<div class="bn-grid">' + (s.items || []).map(function(it) {
@@ -576,7 +573,13 @@ var R = {
     }).join('') + '</div>';
   }
 };
-var NO_SRC = '이미지를 올리면 주소가 여기에 나와요';
+function shareUrl(v) {
+  v = String(v || '').trim();
+  if (!/^https?:\/\//i.test(v)) return '';
+  var m = v.match(/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/[^/]+\/o\/eveden%2F([A-Za-z0-9._-]+)\?/);
+  if (m && /^https?:$/.test(location.protocol) && !/\.github\.io$/.test(location.hostname)) return location.origin + '/b/' + m[1];
+  return v;
+}
 function renderSec(s, room) {
   var r = R[s.type];
   if (!r) return '';
@@ -1011,7 +1014,7 @@ var EDS = {
   banner: function(b, s) {
     fText(b, '위 작은 글씨', s, 'label');
     fImg(b, '배너 이미지 (200×40 비율로 자동으로 잘려요)', s, 'img', true, 400, 5,
-      '사진을 올리면 이미지 주소가 자동으로 생겨서 배너 아래에 나와요.');
+      '사진을 올리면 이미지 주소가 자동으로 생겨요. 사이트의 COPY URL 버튼으로 복사할 수 있어요.');
     fText(b, '배너 클릭 시 이동 주소 (선택)', s, 'link');
   },
   links: function(b, s) {
@@ -1069,17 +1072,17 @@ function showToast2(msg) {
   t._h = setTimeout(function() { t.classList.remove('show'); }, 2200);
 }
 function copyUrl(btn) {
-  var box = btn.closest('.sec').querySelector('.bn-url');
-  if (!box || box.classList.contains('none')) { showToast2('아직 이미지 주소가 없어요'); return; }
-  var txt = box.textContent;
-  try { navigator.clipboard.writeText(txt).catch(function() { selFb(box); }); } catch (e) { selFb(box); }
+  var txt = btn.dataset.u;
+  if (!txt) { showToast2('아직 이미지 주소가 없어요'); return; }
+  function fb() {
+    var t = document.createElement('textarea');
+    t.value = txt; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+    document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    t.remove();
+  }
+  try { navigator.clipboard.writeText(txt).catch(fb); } catch (e) { fb(); }
   showToast2('URL COPIED');
-}
-function selFb(node) {
-  var r = document.createRange();
-  r.selectNode(node);
-  window.getSelection().removeAllRanges();
-  window.getSelection().addRange(r);
 }
 
 document.addEventListener('keydown', function(e) {
