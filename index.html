@@ -138,10 +138,10 @@ body{
 .pcard ul{position:relative;z-index:1;margin-top:14px;border-top:1px solid var(--ln)}
 .pcard ul:first-child{margin-top:0;border-top:none}
 .pcard li:last-child{border-bottom:none}
-.pcard li{display:grid;grid-template-columns:14px 1fr;align-items:baseline;gap:8px;padding:9px 0;border-bottom:1px dashed var(--ln);font:300 12.5px/1.6 'Noto Sans KR',sans-serif;color:#a3afbb}
-.pcard li::before{content:'+';font:400 10px/1 'JetBrains Mono',monospace;color:var(--c)}
+.pcard li{display:grid;grid-template-columns:14px 1fr;align-items:start;gap:8px;padding:9px 0;border-bottom:1px dashed var(--ln);font:300 12.5px/1.6 'Noto Sans KR',sans-serif;color:#a3afbb}
+.pcard li::before{content:'+';display:flex;align-items:center;justify-content:center;height:20px;font:400 10px/1 'JetBrains Mono',monospace;color:var(--c)}
 .pcard.mid li::before{content:'~'}
-.pcard.ng li::before{content:'✕';font-size:9px}
+.pcard.ng li::before{content:'✕';font-size:9px;transform:translateY(.8px)}
 .pbg{position:absolute;right:-6px;bottom:-20px;font:600 80px/1 'Saira Semi Condensed',sans-serif;color:transparent;-webkit-text-stroke:1px rgba(var(--cr),.08);pointer-events:none}
 
 /* communication */
