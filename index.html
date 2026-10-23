@@ -216,7 +216,6 @@ body{
 .bn-frame.has-img img{display:block;object-fit:cover}
 .ed-note{margin-top:8px;font:400 11.5px/1.6 'Noto Sans KR',sans-serif;color:var(--dim)}
 .bn-frame::before,.bn-frame::after{z-index:1}
-.bn-who a{color:var(--ac);text-decoration:none}
 .tbar-dots{padding:12px;margin:-12px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 
 /* editor panel */
@@ -567,9 +566,8 @@ var R = {
       var inner = u ? '<img src="' + u + '" alt="">' : '<span style="font-size:8px">' + (it.empty ? 'EMPTY SLOT' : '배너 이미지') + '</span>';
       if (u && href) inner = '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + inner + '</a>';
       return '<div class="bn-slot"' + (it.empty ? ' style="opacity:.4"' : '') + '><div class="bn-frame' + (u ? ' has-img' : '') + '">' + inner + '</div>' +
-        '<div class="bn-who"><b>' + (it.empty ? '─' : esc(it.name)) + '</b>' +
-        (href ? '<a href="' + esc(href) + '" target="_blank" rel="noopener">LINK</a>' : '<span>' + (it.empty ? '─' : 'LINK') + '</span>') +
-        '</div></div>';
+        (!it.empty && it.name ? '<div class="bn-who"><b>' + esc(it.name) + '</b></div>' : '') +
+        '</div>';
     }).join('') + '</div>';
   }
 };
