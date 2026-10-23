@@ -184,7 +184,7 @@ body{
 .idx-item p{margin-top:4px;font:300 12px/1.6 'Noto Sans KR',sans-serif;color:var(--mu)}
 
 /* banner */
-.bn-frame{display:grid;place-items:center;width:400px;max-width:100%;aspect-ratio:10/1;margin:0;border:1px solid var(--ln2);background:repeating-linear-gradient(-45deg,rgba(190,208,228,.04) 0 6px,transparent 6px 12px),#0b1016;position:relative}
+.bn-frame{display:grid;place-items:center;width:400px;max-width:100%;aspect-ratio:5/1;margin:0;border:1px solid var(--ln2);background:repeating-linear-gradient(-45deg,rgba(190,208,228,.04) 0 6px,transparent 6px 12px),#0b1016;position:relative}
 .bn-frame::before,.bn-frame::after{content:'';position:absolute;width:7px;height:7px;border-color:var(--ac);border-style:solid;opacity:.8}
 .bn-frame::before{left:-1px;top:-1px;border-width:1px 0 0 1px}
 .bn-frame::after{right:-1px;bottom:-1px;border-width:0 1px 1px 0}
@@ -212,9 +212,11 @@ body{
 /* sections */
 .sec.bare{margin-top:16px}
 .sec.bare:first-child{margin-top:0}
-.bn-frame.has-img{display:block;aspect-ratio:auto!important;background:#0b1016}
-.bn-frame.has-img img{display:block;width:100%;height:auto;max-height:240px;object-fit:contain}
-.bn-frame a{display:block}
+.bn-frame.has-img{background:#0b1016}
+.bn-frame.has-img img,.bn-frame.has-img a{position:absolute;inset:0;width:100%;height:100%}
+.bn-frame.has-img img{display:block;object-fit:cover}
+.ed-note{margin-top:8px;font:400 11.5px/1.6 'Noto Sans KR',sans-serif;color:var(--dim)}
+.ed-code{margin-top:8px;padding:10px 12px;border:1px dashed var(--ln2);font:400 12px/1.7 'JetBrains Mono',monospace;color:var(--mu);word-break:break-all}
 .bn-frame::before,.bn-frame::after{z-index:1}
 .bn-who a{color:var(--ac);text-decoration:none}
 .tbar-dots{padding:12px;margin:-12px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
@@ -562,25 +564,38 @@ var R = {
       '<button class="btn" onclick="copyCode(this)">COPY CODE</button></div>' +
       '<div class="bn-frame' + (u ? ' has-img' : '') + '">' + img + '</div>';
   },
-  code: function(s) {
-    return '<div class="bn-code"><pre>' + esc(s.code) + '</pre></div>';
+  code: function(s, room) {
+    return '<div class="bn-code"><pre>' + esc(s.manual ? s.code : autoCode(room)) + '</pre></div>';
   },
   links: function(s) {
     return '<div class="bn-grid">' + (s.items || []).map(function(it) {
       var u = it.empty ? '' : imgUrl(it.img), href = it.empty ? '' : linkUrl(it.link);
       var inner = u ? '<img src="' + u + '" alt="">' : '<span style="font-size:8px">' + (it.empty ? 'EMPTY SLOT' : '배너 이미지') + '</span>';
       if (u && href) inner = '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + inner + '</a>';
-      return '<div class="bn-slot"' + (it.empty ? ' style="opacity:.4"' : '') + '><div class="bn-frame' + (u ? ' has-img' : '') + '" style="aspect-ratio:5/1">' + inner + '</div>' +
+      return '<div class="bn-slot"' + (it.empty ? ' style="opacity:.4"' : '') + '><div class="bn-frame' + (u ? ' has-img' : '') + '">' + inner + '</div>' +
         '<div class="bn-who"><b>' + (it.empty ? '─' : esc(it.name)) + '</b>' +
         (href ? '<a href="' + esc(href) + '" target="_blank" rel="noopener">LINK</a>' : '<span>' + (it.empty ? '─' : 'LINK') + '</span>') +
         '</div></div>';
     }).join('') + '</div>';
   }
 };
-function renderSec(s) {
+var NO_SRC = '이미지 주소를 넣어 주세요';
+function findBanner(room) {
+  var all = [(room && room.sections) || []].concat(DATA.rooms.map(function(r) { return r.sections || []; }));
+  for (var i = 0; i < all.length; i++) for (var j = 0; j < all[i].length; j++) if (all[i][j].type === 'banner') return all[i][j];
+  return null;
+}
+function autoCode(room) {
+  var b = findBanner(room) || {};
+  var link = linkUrl(b.link) || (location.origin + location.pathname);
+  var src = /^https?:\/\//i.test(String(b.img || '').trim()) ? String(b.img).trim() : NO_SRC;
+  var q = function(v) { return String(v).replace(/"/g, '%22'); };
+  return '<a href="' + q(link) + '" target="_blank"><img src="' + q(src) + '" width="200" height="40" alt="EVEDEN"></a>';
+}
+function renderSec(s, room) {
   var r = R[s.type];
   if (!r) return '';
-  return '<div class="sec' + (s.title ? '' : ' bare') + '">' + (s.title ? '<div class="sep"><span>' + esc(s.title) + '</span><i></i></div>' : '') + r(s) + '</div>';
+  return '<div class="sec' + (s.title ? '' : ' bare') + '">' + (s.title ? '<div class="sep"><span>' + esc(s.title) + '</span><i></i></div>' : '') + r(s, room) + '</div>';
 }
 function meta(i) {
   var n = DATA.rooms[i].name || 'ROOM', f = 'ROOM-' + n + '-' + pad(i + 1, 3) + '.dat';
@@ -592,7 +607,7 @@ function renderSite() {
   }).join('');
   $('total').textContent = 'total ' + DATA.rooms.length + ' entries · ' + (DATA.updated || '');
   $('rooms').innerHTML = DATA.rooms.map(function(r, i) {
-    return '<div class="dc" id="r-' + i + '">' + (r.sections || []).map(renderSec).join('') + '</div>';
+    return '<div class="dc" id="r-' + i + '">' + (r.sections || []).map(function(s) { return renderSec(s, r); }).join('') + '</div>';
   }).join('');
   var ci = DATA.rooms.indexOf(_cur);
   if (_cur && ci < 0) idle();
@@ -741,6 +756,7 @@ function draft() {
 function soft() {
   ED.dirty = true; edStatus();
   document.querySelectorAll('#ed details').forEach(function(d) { if (d._lbl) d._lbl(); });
+  document.querySelectorAll('#ed .ed-code').forEach(function(d) { d._upd(); });
   clearTimeout(ED.t);
   ED.t = setTimeout(function() { renderSite(); draft(); }, 200);
 }
@@ -838,13 +854,13 @@ function fSel(b, label, obj, key, opts) {
   s.addEventListener('change', function() { obj[key] = s.value; soft(); });
   return fld(b, label, s);
 }
-function fChk(b, label, obj, key) {
+function fChk(b, label, obj, key, rebuild) {
   var l = el('label', 'ed-chk'), c = el('input');
   c.type = 'checkbox'; c.checked = !!obj[key];
-  c.addEventListener('change', function() { obj[key] = c.checked; soft(); });
+  c.addEventListener('change', function() { obj[key] = c.checked; if (rebuild) hard(); else soft(); });
   l.appendChild(c); l.appendChild(document.createTextNode(label)); b.appendChild(l);
 }
-function fImg(b, label, obj, key, wide, maxW) {
+function fImg(b, label, obj, key, wide, maxW, ratio, note) {
   var box = el('div', 'ed-f'), s = el('span'), row = el('div', 'ed-img'), th = el('div', 'ed-thumb' + (wide ? ' wide' : ''));
   var file = el('input'), up = el('button', 'ed-btn'), rm = el('button', 'ed-btn'), url = el('input', 'ed-in');
   s.textContent = label;
@@ -862,25 +878,32 @@ function fImg(b, label, obj, key, wide, maxW) {
     var f = file.files[0];
     file.value = '';
     if (!f) return;
-    readImg(f, maxW || 600, function(d) {
+    readImg(f, maxW || 600, ratio, function(d) {
       var id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
       IMG[id] = d; PENDING[id] = 1;
       obj[key] = 'img:' + id; url.value = ''; upd(); soft();
     });
   });
   row.appendChild(th); row.appendChild(up); row.appendChild(rm); row.appendChild(file);
-  box.appendChild(s); box.appendChild(row); box.appendChild(url); b.appendChild(box);
+  box.appendChild(s); box.appendChild(row); box.appendChild(url);
+  if (note) { var n = el('div', 'ed-note'); n.textContent = note; box.appendChild(n); }
+  b.appendChild(box);
   upd();
 }
-function readImg(f, maxW, cb) {
+function readImg(f, maxW, ratio, cb) {
   var r = new FileReader();
   r.onload = function() {
     if (f.type === 'image/gif' && f.size < 600000) return cb(r.result);
     var im = new Image();
     im.onload = function() {
-      var k = Math.min(1, maxW / im.width), c = document.createElement('canvas');
-      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
-      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      var sx = 0, sy = 0, sw = im.width, sh = im.height;
+      if (ratio) {
+        if (sw / sh > ratio) { sw = sh * ratio; sx = (im.width - sw) / 2; }
+        else { sh = sw / ratio; sy = (im.height - sh) / 2; }
+      }
+      var k = Math.min(1, maxW / sw), c = document.createElement('canvas');
+      c.width = Math.round(sw * k); c.height = Math.round(sh * k);
+      c.getContext('2d').drawImage(im, sx, sy, sw, sh, 0, 0, c.width, c.height);
       var out = f.type === 'image/png' ? c.toDataURL('image/png') : '';
       for (var q = .86; (!out || out.length > 900000) && q > .3; q -= .14) out = c.toDataURL('image/jpeg', q);
       if (out.length > 900000) { alert('이미지가 너무 커요. 더 작은 이미지를 써 주세요.'); return; }
@@ -976,16 +999,22 @@ var EDS = {
   },
   banner: function(b, s) {
     fText(b, '위 작은 글씨', s, 'label');
-    fImg(b, '배너 이미지', s, 'img', true, 800);
-    fText(b, '배너 클릭 시 이동 주소 (선택)', s, 'link');
+    fImg(b, '배너 이미지 (200×40 비율로 자동으로 잘려요)', s, 'img', true, 400, 5,
+      '올린 사진은 이 사이트에서만 보여요. 다른 사이트에 붙일 코드에는 이미지 주소(https://...)가 필요해요.');
+    fText(b, '배너 클릭 시 이동 주소 (비우면 이 사이트 주소)', s, 'link');
   },
   code: function(b, s) {
-    fText(b, '코드', s, 'code', true);
+    fChk(b, '코드 직접 입력 (끄면 배너 정보로 자동 생성)', s, 'manual', true);
+    if (s.manual) { fText(b, '코드', s, 'code', true); return; }
+    var pv = el('div', 'ed-code');
+    pv._upd = function() { pv.textContent = autoCode(DATA.rooms.filter(function(r) { return (r.sections || []).indexOf(s) >= 0; })[0]); };
+    pv._upd();
+    b.appendChild(pv);
   },
   links: function(b, s) {
     sub(b, '배너');
     b.appendChild(edList(s.items, function(it, i) { return (i + 1) + ' — ' + (it.empty ? '빈 칸' : (it.name || '닉네임')); }, function(b, it) {
-      fImg(b, '배너 이미지', it, 'img', true, 600);
+      fImg(b, '배너 이미지 (200×40 비율로 자동으로 잘려요)', it, 'img', true, 400, 5);
       fText(b, '닉네임', it, 'name');
       fText(b, '링크 주소', it, 'link');
       fChk(b, '빈 칸으로 표시', it, 'empty');
@@ -1041,7 +1070,7 @@ function copyCode(btn) {
   if (!pre) { showToast2('NO CODE'); return; }
   var txt = pre.textContent;
   try { navigator.clipboard.writeText(txt).catch(function() { selFb(pre); }); } catch (e) { selFb(pre); }
-  showToast2('CODE COPIED');
+  showToast2(txt.indexOf(NO_SRC) >= 0 ? '복사됨 · 이미지 주소가 아직 없어요' : 'CODE COPIED');
 }
 function selFb(node) {
   var r = document.createRange();
