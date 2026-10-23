@@ -3,6 +3,7 @@
 <title>EVEDEN · ROOM 시안 C</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Saira+Semi+Condensed:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -296,7 +297,7 @@ select.ed-in{padding-right:38px;background:#03050a url("data:image/svg+xml,%3Csv
   <div class="term">
 
     <div class="pline"><span class="ps1">eveden<em>@system</em>:~$</span><span class="pcmd">ls -lh /eveden/rooms/</span></div>
-    <div class="pline" style="margin-top:2px"><span class="pout" id="total"></span></div>
+    <div class="pline" style="margin-top:2px"><span class="pout" id="total">loading...</span></div>
 
     <div style="margin-top:10px">
       <div class="dir-hdr"><span>NO</span><span>ROOM</span><span style="text-align:right">STATE</span></div>
@@ -328,12 +329,12 @@ select.ed-in{padding-right:38px;background:#03050a url("data:image/svg+xml,%3Csv
 <div id="ed" role="dialog" aria-label="사이트 고치기">
   <div class="ed-pn">
     <div class="ed-ttl">사이트 고치기</div>
-    <div class="ed-meta"><button type="button" onclick="edToken()">GitHub 토큰 바꾸기</button><button type="button" onclick="edLogout()">로그아웃</button></div>
+    <div class="ed-meta"><button type="button" onclick="edLogout()">로그아웃</button></div>
     <div id="ed-rooms"></div>
     <div class="ed-bar">
       <span id="ed-st"></span>
       <button type="button" class="ed-btn" onclick="closeEditor()">닫기</button>
-      <button type="button" class="ed-btn ed-save" id="ed-save" onclick="saveToGH()">GitHub 저장</button>
+      <button type="button" class="ed-btn ed-save" id="ed-save" onclick="saveDB()">저장</button>
     </div>
   </div>
 </div>
@@ -429,6 +430,7 @@ function pad(n, w) { return String(n).padStart(w || 2, '0'); }
 function today() { var d = new Date(); return d.getFullYear() + '.' + pad(d.getMonth() + 1) + '.' + pad(d.getDate()); }
 function imgUrl(u) {
   u = String(u || '').trim();
+  if (u.indexOf('img:') === 0) u = IMG[u.slice(4)] || '';
   if (!/^(data:image\/|https?:\/\/)/i.test(u)) return '';
   return u.replace(/["'()\\\s<>]/g, function(c) { return '%' + c.charCodeAt(0).toString(16).toUpperCase(); });
 }
@@ -652,7 +654,9 @@ firebase.initializeApp({
   appId:"1:281847580341:web:2556c1b5ebf22bdbc860fc"
 });
 var fbAuth = firebase.auth();
+var db = firebase.firestore();
 var OWNER = 'dpwns1024@gmail.com';
+var SITE_DOC = 'eveden', IMG = {}, PENDING = {};
 
 function requestEdit() {
   var u = fbAuth.currentUser;
@@ -696,11 +700,14 @@ function newSec(type) {
 
 function openEditor() {
   try {
-    var d = localStorage.getItem('ev_draft');
-    if (d && d !== JSON.stringify(DATA)) {
-      if (confirm('GitHub에 저장 안 된 수정본이 있어요. 이어서 고칠까요?')) { DATA = JSON.parse(d); ED.dirty = true; renderSite(); }
-      else localStorage.removeItem('ev_draft');
-    }
+    var raw = localStorage.getItem('ev_draft'), x = raw && JSON.parse(raw), dd = x && (x.d || x);
+    if (dd && JSON.stringify(dd) !== JSON.stringify(DATA)) {
+      if (confirm('저장 안 된 수정본이 있어요. 이어서 고칠까요?')) {
+        DATA = dd;
+        Object.keys(x.p || {}).forEach(function(id) { IMG[id] = x.p[id]; PENDING[id] = 1; });
+        ED.dirty = true; renderSite();
+      } else localStorage.removeItem('ev_draft');
+    } else if (raw) localStorage.removeItem('ev_draft');
   } catch (e) {}
   $('ed').classList.add('show');
   document.body.style.overflow = 'hidden';
@@ -713,10 +720,13 @@ function closeEditor() {
   if (ED.dirty) showToast2('저장 안 됨 · 임시 보관 중');
 }
 function edLogout() { fbAuth.signOut(); closeEditor(); showToast2('로그아웃'); }
-function edToken() { localStorage.removeItem('ev_gh_token'); ghToken(); }
 
 function edStatus(msg) { $('ed-st').textContent = msg || (ED.dirty ? '● 저장 안 됨' : '저장됨'); }
-function draft() { try { localStorage.setItem('ev_draft', JSON.stringify(DATA)); } catch (e) {} }
+function draft() {
+  var p = {};
+  Object.keys(PENDING).forEach(function(id) { p[id] = IMG[id]; });
+  try { localStorage.setItem('ev_draft', JSON.stringify({ d: DATA, p: p })); } catch (e) {}
+}
 function soft() {
   ED.dirty = true; edStatus();
   document.querySelectorAll('#ed details').forEach(function(d) { if (d._lbl) d._lbl(); });
@@ -832,7 +842,7 @@ function fImg(b, label, obj, key, wide, maxW) {
   rm.type = 'button'; rm.textContent = '빼기';
   url.placeholder = '또는 이미지 주소 (https://...)';
   url.style.marginTop = '8px';
-  url.value = /^data:/.test(obj[key] || '') ? '' : (obj[key] || '');
+  url.value = /^(data|img):/.test(obj[key] || '') ? '' : (obj[key] || '');
   function upd() { var u = imgUrl(obj[key]); th.style.backgroundImage = u ? 'url("' + u + '")' : ''; rm.disabled = !obj[key]; }
   up.addEventListener('click', function() { file.click(); });
   rm.addEventListener('click', function() { obj[key] = ''; url.value = ''; upd(); soft(); });
@@ -841,7 +851,11 @@ function fImg(b, label, obj, key, wide, maxW) {
     var f = file.files[0];
     file.value = '';
     if (!f) return;
-    readImg(f, maxW || 600, function(d) { obj[key] = d; url.value = ''; upd(); soft(); });
+    readImg(f, maxW || 600, function(d) {
+      var id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      IMG[id] = d; PENDING[id] = 1;
+      obj[key] = 'img:' + id; url.value = ''; upd(); soft();
+    });
   });
   row.appendChild(th); row.appendChild(up); row.appendChild(rm); row.appendChild(file);
   box.appendChild(s); box.appendChild(row); box.appendChild(url); b.appendChild(box);
@@ -856,7 +870,10 @@ function readImg(f, maxW, cb) {
       var k = Math.min(1, maxW / im.width), c = document.createElement('canvas');
       c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
       c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-      cb(c.toDataURL(f.type === 'image/png' ? 'image/png' : 'image/jpeg', .86));
+      var out = f.type === 'image/png' ? c.toDataURL('image/png') : '';
+      for (var q = .86; (!out || out.length > 900000) && q > .3; q -= .14) out = c.toDataURL('image/jpeg', q);
+      if (out.length > 900000) { alert('이미지가 너무 커요. 더 작은 이미지를 써 주세요.'); return; }
+      cb(out);
     };
     im.onerror = function() { alert('이미지를 읽을 수 없어요.'); };
     im.src = r.result;
@@ -965,59 +982,37 @@ var EDS = {
   }
 };
 
-/* ── GitHub save ─────────────────────────── */
-var GH_API = 'https://api.github.com/repos/dpwns1024/log-editor/contents/index.html';
-function ghToken() {
-  var t = localStorage.getItem('ev_gh_token') || '';
-  if (!t) {
-    t = (prompt('GitHub 토큰을 붙여넣어 주세요.\n(GitHub → Settings → Developer settings → Fine-grained tokens\n저장소: log-editor · 권한: Contents Read & Write)') || '').trim();
-    if (t) localStorage.setItem('ev_gh_token', t);
-  }
-  return t;
+/* ── save / load (Firestore) ─────────────── */
+function loadImgs() {
+  var ids = {}, re = /"img:([A-Za-z0-9_-]+)"/g, m, str = JSON.stringify(DATA);
+  while ((m = re.exec(str))) if (!IMG[m[1]]) ids[m[1]] = 1;
+  return Promise.all(Object.keys(ids).map(function(id) {
+    return db.collection('siteimg').doc(id).get().then(function(d) { if (d.exists) IMG[id] = d.data().d; }).catch(function() {});
+  }));
 }
-function b64(str) {
-  var bytes = new TextEncoder().encode(str), s = '';
-  for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-  return btoa(s);
-}
-async function saveToGH() {
-  var token = ghToken();
-  if (!token) return;
-  var btn = $('ed-save');
+async function saveDB() {
+  var u = fbAuth.currentUser;
+  if (!u || u.email !== OWNER) { edStatus('✕ 로그인이 풀렸어요 · 닫고 다시 열어 주세요'); return; }
+  var btn = $('ed-save'), prev = DATA.updated;
   btn.disabled = true;
-  edStatus('GitHub 저장 중...');
+  edStatus('저장 중...');
   try {
-    var auth = { Authorization: 'Bearer ' + token };
-    var mr = await fetch(GH_API, { headers: Object.assign({ Accept: 'application/vnd.github+json' }, auth), cache: 'no-store' });
-    if (mr.status === 401 || mr.status === 403 || mr.status === 404) {
-      localStorage.removeItem('ev_gh_token');
-      throw new Error('토큰 오류 (' + mr.status + ') · 다시 눌러 토큰 입력');
-    }
-    var meta = await mr.json();
-    var src = await fetch(GH_API, { headers: Object.assign({ Accept: 'application/vnd.github.raw' }, auth), cache: 'no-store' }).then(function(r) { return r.text(); });
-    var re = /(<script type="application\/json" id="site-data">)[\s\S]*?(<\/script>)/;
-    if (!re.test(src)) throw new Error('파일에서 데이터 위치를 찾을 수 없어요');
-    var prev = DATA.updated;
+    var used = JSON.stringify(DATA);
+    await Promise.all(Object.keys(PENDING).filter(function(id) { return used.indexOf('img:' + id) >= 0; }).map(function(id) {
+      return db.collection('siteimg').doc(id).set({ d: IMG[id] });
+    }));
+    PENDING = {};
     DATA.updated = today();
-    var json = '\n' + JSON.stringify(DATA, null, 1).replace(/</g, '\\u003c') + '\n';
-    var html = src.replace(re, function(_, a, z) { return a + json + z; });
-    var pr = await fetch(GH_API, {
-      method: 'PUT',
-      headers: Object.assign({ 'Content-Type': 'application/json' }, auth),
-      body: JSON.stringify({ message: 'content: site update', content: b64(html), sha: meta.sha })
-    });
-    if (!pr.ok) {
-      DATA.updated = prev;
-      if (pr.status === 401) localStorage.removeItem('ev_gh_token');
-      throw new Error('저장 실패 (' + pr.status + ')');
-    }
+    await db.collection('site').doc(SITE_DOC).set({ json: JSON.stringify(DATA), at: firebase.firestore.FieldValue.serverTimestamp() });
     ED.dirty = false;
     try { localStorage.removeItem('ev_draft'); } catch (e) {}
     renderSite();
-    edStatus('✓ 저장 완료 · 1~2분 뒤 사이트에 반영');
-    showToast2('↑ GITHUB 저장 완료');
+    edStatus('✓ 저장 완료 · 모두에게 바로 반영');
+    showToast2('저장 완료');
   } catch (e) {
-    edStatus('✕ ' + (e.message || '네트워크 오류'));
+    DATA.updated = prev;
+    draft();
+    edStatus('✕ 저장 실패 · ' + (e.code === 'permission-denied' ? '권한 없음 (Firestore 규칙 확인)' : (e.message || '네트워크 오류')));
   }
   btn.disabled = false;
 }
@@ -1050,8 +1045,16 @@ document.addEventListener('keydown', function(e) {
   else if ($('ed').classList.contains('show')) closeEditor();
 });
 
-try { ['ev_r-info', 'ev_r-list', 'ev_r-banner', 'ev_pin'].forEach(function(k) { localStorage.removeItem(k); }); } catch (e) {}
-renderSite();
+try { ['ev_r-info', 'ev_r-list', 'ev_r-banner', 'ev_pin', 'ev_gh_token'].forEach(function(k) { localStorage.removeItem(k); }); } catch (e) {}
+var _booted = false;
+function boot() { if (!_booted) { _booted = true; renderSite(); } }
+setTimeout(boot, 3000);
+db.collection('site').doc(SITE_DOC).get().then(function(d) {
+  if (d.exists && d.data().json && !$('ed').classList.contains('show')) DATA = JSON.parse(d.data().json);
+}).catch(function() {}).then(function() {
+  if (_booted) renderSite(); else boot();
+  return loadImgs();
+}).then(renderSite);
 if (location.hash === '#edit') {
   var _off = fbAuth.onAuthStateChanged(function() { _off(); requestEdit(); });
 }
