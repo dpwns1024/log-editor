@@ -203,9 +203,27 @@ body{
 /* toast */
 #toast{position:fixed;left:50%;bottom:32px;z-index:10;transform:translate(-50%,14px);padding:10px 18px;border:1px solid rgba(var(--acr),.4);background:rgba(5,7,12,.96);font:400 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.24em;color:var(--ac);opacity:0;pointer-events:none;transition:all .28s;box-shadow:0 0 28px -8px rgba(var(--acr),.5)}
 #toast.show{opacity:1;transform:translate(-50%,0)}
-/* edit mode */
-.em [data-e]{outline:1px dashed rgba(var(--acr),.35);cursor:text;min-width:8px;display:inline-block}
-.em [data-e]:focus{outline:1px solid rgba(var(--acr),.8);background:rgba(var(--acr),.06);border-radius:1px}
+/* edit mode — text */
+.em [data-e]{outline:1px dashed rgba(var(--acr),.3);cursor:text;min-width:6px;display:inline-block}
+.em [data-e]:focus{outline:1px solid rgba(var(--acr),.75);background:rgba(var(--acr),.06);border-radius:1px}
+/* edit mode — section labels */
+.em .sep{position:relative;overflow:visible}
+.em-lbl{display:none;position:absolute;right:0;top:50%;transform:translateY(-50%);padding:2px 8px;border:1px solid rgba(var(--acr),.22);background:rgba(5,7,12,.92);font:400 8px/1.6 'JetBrains Mono',monospace;letter-spacing:.18em;color:rgba(var(--acr),.55);white-space:nowrap;pointer-events:none;z-index:5}
+.em .em-lbl{display:block}
+/* edit mode — item controls */
+.em .frow,.em .grow,.em .citem,.em .fcard,.em .idx-item,.em .bn-slot{position:relative}
+.em .pcard ul li{position:relative;list-style:none}
+.em-ic{position:absolute;right:0;top:0;display:none;background:rgba(5,7,12,.97);border:1px solid rgba(var(--acr),.22);z-index:20}
+.em .frow:hover>.em-ic,.em .grow:hover>.em-ic,.em .citem:hover>.em-ic,.em .fcard:hover>.em-ic,.em .idx-item:hover>.em-ic,.em .bn-slot:hover>.em-ic,.em li:hover>.em-ic{display:flex}
+.em-ic button{width:22px;height:22px;background:none;border:none;border-left:1px solid rgba(var(--acr),.15);color:var(--dim);font:400 12px/22px 'JetBrains Mono',monospace;cursor:pointer;padding:0}
+.em-ic button:first-child{border-left:none}
+.em-ic button:hover{color:var(--ac);background:rgba(var(--acr),.08)}
+.em-ic button.del:hover{color:var(--red)}
+/* edit mode — add buttons */
+.em-add{display:none;padding:8px 12px;border:1px dashed rgba(var(--acr),.18);color:rgba(var(--acr),.35);font:400 8.5px/1 'JetBrains Mono',monospace;letter-spacing:.2em;cursor:pointer;text-align:center;margin-top:8px;width:100%;box-sizing:border-box}
+.em .em-add{display:block}
+.em .em-add:hover{border-color:rgba(var(--acr),.45);color:var(--ac);background:rgba(var(--acr),.03)}
+/* edit mode — fixed bar */
 #em-bar{position:fixed;bottom:20px;right:20px;z-index:200;display:none;flex-direction:column;gap:8px;align-items:flex-end}
 .em #em-bar{display:flex}
 #em-badge{padding:5px 10px;border:1px solid rgba(var(--acr),.5);background:rgba(5,7,12,.95);font:400 8.5px/1 'JetBrains Mono',monospace;letter-spacing:.22em;color:var(--ac);box-shadow:0 0 20px -6px rgba(var(--acr),.5)}
@@ -487,62 +505,180 @@ function acc(el) {
 }
 
 /* ── edit mode ───────────────────────────── */
-var EM = false;
+var EM = false, EM_READY = false;
 
 function toggleEM() {
   if (!EM && !checkPIN()) return;
   EM = !EM;
   document.body.classList.toggle('em', EM);
-  if (EM) { initEM(); } else { saveEM(); }
+  if (EM) {
+    if (!EM_READY) { emInject(); EM_READY = true; }
+    initEditable();
+  } else {
+    saveEM(); cleanEditable();
+  }
 }
 
 function checkPIN() {
   var stored = localStorage.getItem('ev_pin');
   if (!stored) {
-    var p1 = prompt('편집 모드 PIN 설정 (숫자 4자리):');
+    var p1 = prompt('편집 모드 PIN 설정 (4자리 이상):');
     if (!p1 || p1.length < 4) return false;
-    var p2 = prompt('PIN 확인:');
-    if (p1 !== p2) { alert('PIN 불일치'); return false; }
+    if (prompt('PIN 확인:') !== p1) { alert('PIN 불일치'); return false; }
     localStorage.setItem('ev_pin', p1);
     return true;
   }
   return prompt('PIN 입력:') === stored;
 }
 
-function initEM() {
-  document.querySelectorAll(
-    '.fv,.gpct,.qbox,.pcard ul li,.ctext,.fnm,.fcl,.fno,.fst,.idx-item b,.idx-item p,.bn-who b,#bnCode,.fk'
-  ).forEach(function(el, i) {
-    el.setAttribute('data-e', i);
-    el.contentEditable = 'true';
-    el.spellcheck = false;
-    el.addEventListener('blur', saveEM);
-    el.addEventListener('input', function() {
-      if (el.classList.contains('gpct')) {
-        var gbar = el.closest('.grow') && el.closest('.grow').querySelector('.gbar span');
-        if (gbar) { var v = parseInt(el.textContent); if (!isNaN(v)) gbar.style.setProperty('--v', v + '%'); }
+function mkIc() {
+  var ic = document.createElement('div');
+  ic.className = 'em-ic';
+  ic.innerHTML = '<button title="위로" onclick="emUp(this)">↑</button><button title="아래로" onclick="emDn(this)">↓</button><button class="del" title="삭제" onclick="emDel(this)">×</button>';
+  return ic;
+}
+function mkAdd(txt, fn) {
+  var b = document.createElement('div');
+  b.className = 'em-add'; b.textContent = '＋ ' + txt;
+  b.addEventListener('click', fn); return b;
+}
+function mkEl(tag, cls, html) {
+  var el = document.createElement(tag);
+  el.className = cls; el.innerHTML = html; return el;
+}
+
+function emInject() {
+  /* section labels */
+  var smap = {
+    'r-info':   ['PROFILE','STATUS','MEMO','PREFERENCE','COMMUNICATION'],
+    'r-list':   ['ACTIVE','INDEX'],
+    'r-banner': ['BANNER','INFO','CODE','LINKED']
+  };
+  Object.keys(smap).forEach(function(id) {
+    document.querySelectorAll('#'+id+' > .sep').forEach(function(sep, i) {
+      if (!sep.querySelector('.em-lbl') && smap[id][i]) {
+        var lbl = document.createElement('span');
+        lbl.className = 'em-lbl'; lbl.textContent = smap[id][i];
+        sep.appendChild(lbl);
       }
-      saveEM();
     });
   });
-  loadEM();
+  /* profile fields */
+  injectIc('.fields .frow');
+  appendAdd('.fields', '프로필 항목 추가', function() {
+    var el = mkEl('div','frow','<span class="fk">KEY</span><span class="fdots">···················</span><span class="fv">VALUE</span>');
+    el.appendChild(mkIc());
+    document.querySelector('.fields .em-add').before(el);
+    reIdx(); saveEM();
+  });
+  /* gauges */
+  injectIc('.gauges .grow');
+  appendAdd('.gauges', '게이지 추가', function() {
+    var el = mkEl('div','grow','<span class="gk">LABEL</span><div class="gbar"><span style="--v:50%"></span></div><span class="gpct">50%</span>');
+    el.appendChild(mkIc());
+    document.querySelector('.gauges .em-add').before(el);
+    reIdx(); saveEM();
+  });
+  /* preference lists */
+  ['like','mid','ng'].forEach(function(t) {
+    var ul = document.querySelector('.pcard.'+t+' ul');
+    if (!ul) return;
+    ul.querySelectorAll('li').forEach(function(li) { if (!li.querySelector('.em-ic')) li.appendChild(mkIc()); });
+    if (!ul.nextElementSibling || !ul.nextElementSibling.classList.contains('em-add')) {
+      ul.after(mkAdd('항목 추가', function() {
+        var li = document.createElement('li');
+        li.textContent = '항목'; li.appendChild(mkIc()); ul.appendChild(li);
+        reIdx(); saveEM();
+      }));
+    }
+  });
+  /* comm rules */
+  injectIc('.comms .citem');
+  appendAdd('.comms', '규칙 추가', function() {
+    var n = document.querySelectorAll('.comms .citem').length + 1;
+    var el = mkEl('div','citem','<span class="ckw">C-'+String(n).padStart(2,'0')+'</span><div class="ctext">내용을 입력하세요.</div>');
+    el.appendChild(mkIc()); document.querySelector('.comms .em-add').before(el);
+    reIdx(); saveEM();
+  });
+  /* character cards */
+  injectIc('.fcards .fcard');
+  appendAdd('.fcards', '캐릭터 추가', function() {
+    var n = document.querySelectorAll('.fcards .fcard').length + 1;
+    var s = String(n).padStart(2,'0');
+    var el = mkEl('div','fcard','<div class="fph"></div><div><span class="fno">N-'+s+' · 현재</span><span class="fnm">캐릭터 이름</span><span class="fcl">분류 · 설명</span><span class="fst">ACTIVE</span></div><span class="ftag">'+s+'</span>');
+    el.appendChild(mkIc()); document.querySelector('.fcards .em-add').before(el);
+    reIdx(); saveEM();
+  });
+}
+
+function injectIc(sel) {
+  document.querySelectorAll(sel).forEach(function(el) {
+    if (!el.querySelector('.em-ic')) el.appendChild(mkIc());
+  });
+}
+function appendAdd(sel, txt, fn) {
+  var c = document.querySelector(sel);
+  if (c && !c.querySelector('.em-add')) c.appendChild(mkAdd(txt, fn));
+}
+
+function emUp(btn) {
+  var item = btn.closest('.em-ic').parentElement;
+  var prev = item.previousElementSibling;
+  if (prev) { item.parentNode.insertBefore(item, prev); saveEM(); }
+}
+function emDn(btn) {
+  var item = btn.closest('.em-ic').parentElement;
+  var next = item.nextElementSibling;
+  if (next && !next.classList.contains('em-add')) { item.parentNode.insertBefore(next, item); saveEM(); }
+}
+function emDel(btn) {
+  if (!confirm('삭제할까요?')) return;
+  btn.closest('.em-ic').parentElement.remove(); saveEM();
+}
+
+function initEditable() {
+  document.querySelectorAll('.fv,.gpct,.qbox,.pcard ul li,.ctext,.fnm,.fcl,.fno,.fst,.idx-item b,.idx-item p,.bn-who b,#bnCode,.fk,.gk').forEach(function(el, i) {
+    if (!el.dataset.e) el.setAttribute('data-e', i);
+    el.contentEditable = 'true'; el.spellcheck = false;
+    if (!el._emb) {
+      el.addEventListener('blur', saveEM);
+      el.addEventListener('input', function() { syncGauge(el); saveEM(); });
+      el._emb = true;
+    }
+  });
+}
+function cleanEditable() {
+  document.querySelectorAll('[contenteditable]').forEach(function(el) { el.removeAttribute('contenteditable'); });
+}
+function reIdx() {
+  document.querySelectorAll('.fv,.gpct,.qbox,.pcard ul li,.ctext,.fnm,.fcl,.fno,.fst,.idx-item b,.idx-item p,.bn-who b,#bnCode,.fk,.gk').forEach(function(el, i) {
+    el.setAttribute('data-e', i);
+    if (EM) { el.contentEditable = 'true'; el.spellcheck = false; }
+  });
+}
+function syncGauge(el) {
+  if (!el.classList.contains('gpct')) return;
+  var row = el.closest && el.closest('.grow');
+  if (row) { var v = parseInt(el.textContent); var bar = row.querySelector('.gbar span'); if (!isNaN(v) && bar) bar.style.setProperty('--v', v+'%'); }
 }
 
 function saveEM() {
-  var data = {};
-  document.querySelectorAll('[data-e]').forEach(function(el) {
-    data[el.dataset.e] = el.innerHTML;
-  });
-  try { localStorage.setItem('eveden_content', JSON.stringify(data)); } catch(e) {}
+  try {
+    ['r-info','r-list','r-banner'].forEach(function(id) {
+      var el = document.getElementById(id); if (!el) return;
+      var clone = el.cloneNode(true);
+      clone.querySelectorAll('.em-ic,.em-lbl,.em-add').forEach(function(x){x.remove();});
+      clone.querySelectorAll('[contenteditable]').forEach(function(x){x.removeAttribute('contenteditable');});
+      clone.querySelectorAll('[data-e]').forEach(function(x){x.removeAttribute('data-e');});
+      localStorage.setItem('ev_'+id, clone.innerHTML);
+    });
+  } catch(e) {}
 }
-
 function loadEM() {
   try {
-    var raw = localStorage.getItem('eveden_content');
-    if (!raw) return;
-    var data = JSON.parse(raw);
-    document.querySelectorAll('[data-e]').forEach(function(el) {
-      if (data[el.dataset.e] !== undefined) el.innerHTML = data[el.dataset.e];
+    ['r-info','r-list','r-banner'].forEach(function(id) {
+      var raw = localStorage.getItem('ev_'+id);
+      if (raw) { var el = document.getElementById(id); if (el) el.innerHTML = raw; }
     });
   } catch(e) {}
 }
@@ -559,6 +695,7 @@ async function saveToGH() {
 
   var clone = document.documentElement.cloneNode(true);
   clone.querySelector('body').classList.remove('em');
+  clone.querySelectorAll('.em-ic,.em-lbl,.em-add').forEach(function(e){e.remove();});
   clone.querySelectorAll('[contenteditable]').forEach(function(e){ e.removeAttribute('contenteditable'); });
   clone.querySelectorAll('[data-e]').forEach(function(e){ e.removeAttribute('data-e'); });
   var html = clone.outerHTML;
@@ -585,25 +722,12 @@ function showToast2(msg) {
   setTimeout(function(){ t.classList.remove('show'); setTimeout(function(){ t.textContent='CODE COPIED'; },300); }, 2500);
 }
 
-/* auto-load saved content on page start */
+/* auto-load on page start */
 (function() {
   try {
-    var raw = localStorage.getItem('eveden_content');
-    if (!raw) return;
-    var data = JSON.parse(raw);
-    window.addEventListener('DOMContentLoaded', function() {
-      document.querySelectorAll(
-        '.fv,.gpct,.qbox,.pcard ul li,.ctext,.fnm,.fcl,.fno,.fst,.idx-item b,.idx-item p,.bn-who b,#bnCode,.fk'
-      ).forEach(function(el, i) {
-        el.setAttribute('data-e', i);
-        if (data[i] !== undefined) {
-          el.innerHTML = data[i];
-          if (el.classList.contains('gpct')) {
-            var gbar = el.closest('.grow') && el.closest('.grow').querySelector('.gbar span');
-            if (gbar) { var v = parseInt(el.textContent); if (!isNaN(v)) gbar.style.setProperty('--v', v + '%'); }
-          }
-        }
-      });
+    ['r-info','r-list','r-banner'].forEach(function(id) {
+      var raw = localStorage.getItem('ev_'+id);
+      if (raw) { var el = document.getElementById(id); if (el) el.innerHTML = raw; }
     });
   } catch(e) {}
 })();
