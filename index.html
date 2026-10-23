@@ -212,8 +212,10 @@ body{
 /* sections */
 .sec.bare{margin-top:16px}
 .sec.bare:first-child{margin-top:0}
-.bn-frame img{display:block;width:100%;height:100%;object-fit:cover}
-.bn-frame a{display:block;width:100%;height:100%}
+.bn-frame.has-img{display:block;aspect-ratio:auto!important;background:#0b1016}
+.bn-frame.has-img img{display:block;width:100%;height:auto;max-height:240px;object-fit:contain}
+.bn-frame a{display:block}
+.bn-frame::before,.bn-frame::after{z-index:1}
 .bn-who a{color:var(--ac);text-decoration:none}
 .tbar-dots{padding:12px;margin:-12px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 
@@ -558,7 +560,7 @@ var R = {
     return '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">' +
       '<span style="font:400 9px/1 \'JetBrains Mono\',monospace;letter-spacing:.26em;color:var(--mu)">' + esc(s.label) + '</span>' +
       '<button class="btn" onclick="copyCode(this)">COPY CODE</button></div>' +
-      '<div class="bn-frame">' + img + '</div>';
+      '<div class="bn-frame' + (u ? ' has-img' : '') + '">' + img + '</div>';
   },
   code: function(s) {
     return '<div class="bn-code"><pre>' + esc(s.code) + '</pre></div>';
@@ -568,7 +570,7 @@ var R = {
       var u = it.empty ? '' : imgUrl(it.img), href = it.empty ? '' : linkUrl(it.link);
       var inner = u ? '<img src="' + u + '" alt="">' : '<span style="font-size:8px">' + (it.empty ? 'EMPTY SLOT' : '배너 이미지') + '</span>';
       if (u && href) inner = '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + inner + '</a>';
-      return '<div class="bn-slot"' + (it.empty ? ' style="opacity:.4"' : '') + '><div class="bn-frame" style="aspect-ratio:5/1">' + inner + '</div>' +
+      return '<div class="bn-slot"' + (it.empty ? ' style="opacity:.4"' : '') + '><div class="bn-frame' + (u ? ' has-img' : '') + '" style="aspect-ratio:5/1">' + inner + '</div>' +
         '<div class="bn-who"><b>' + (it.empty ? '─' : esc(it.name)) + '</b>' +
         (href ? '<a href="' + esc(href) + '" target="_blank" rel="noopener">LINK</a>' : '<span>' + (it.empty ? '─' : 'LINK') + '</span>') +
         '</div></div>';
