@@ -219,8 +219,8 @@ body{
 .sec.bare{margin-top:16px}
 .sec.bare:first-child{margin-top:0}
 .bn-frame.has-img{background:#0b1016}
-.bn-frame.has-img img,.bn-frame.has-img a{position:absolute;inset:0;width:100%;height:100%}
-.bn-frame.has-img img{display:block;object-fit:cover}
+.bn-frame.has-img a,.bn-clip{position:absolute;inset:0;display:block;overflow:hidden}
+.bn-frame.has-img img{display:block;width:100%;height:100%;object-fit:cover}
 .ed-note{margin-top:8px;font:400 11.5px/1.6 'Noto Sans KR',sans-serif;color:var(--dim)}
 .bn-frame::before,.bn-frame::after{z-index:1}
 .tbar-dots{padding:12px;margin:-12px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
@@ -268,7 +268,8 @@ select.ed-in{padding-right:38px;background:#03050a url("data:image/svg+xml,%3Csv
 .ed-thumb.wide{width:130px;aspect-ratio:5/1}
 .ed-pos{position:relative;width:100%;aspect-ratio:5/1;border:1px solid var(--ln2);background:#0b1016;overflow:hidden;cursor:grab;touch-action:none}
 .ed-posbar{display:flex;align-items:center;gap:12px;margin-top:8px}
-.ed-posbar .ed-note{margin-top:0}
+.ed-posbar .ed-note{margin-top:0;flex:none}
+.ed-zoom{flex:1;min-width:0;accent-color:var(--ac);height:28px}
 .ed-pos.drag{cursor:grabbing;border-color:rgba(var(--acr),.6)}
 .ed-pos img{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none;-webkit-user-drag:none;user-select:none}
 .ed-btn{height:42px;padding:0 16px;border:1px solid var(--ln2);background:transparent;color:var(--tx);font:400 13px/1 'Noto Sans KR',sans-serif;letter-spacing:.2em;cursor:pointer;white-space:nowrap}
@@ -568,7 +569,7 @@ var R = {
   },
   banner: function(s) {
     var u = imgUrl(s.img), href = linkUrl(s.link), pub = shareUrl(s.img);
-    var img = u ? '<img src="' + u + '" alt=""' + objPos(s) + '>' : '<span>BANNER · 이미지 준비 중</span>';
+    var img = u ? '<span class="bn-clip"><img src="' + u + '" alt=""' + objPos(s) + '></span>' : '<span>BANNER · 이미지 준비 중</span>';
     if (u && href) img = '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + img + '</a>';
     return '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">' +
       '<span style="font:400 9px/1 \'JetBrains Mono\',monospace;letter-spacing:.26em;color:var(--mu)">' + esc(s.label) + '</span>' +
@@ -578,7 +579,7 @@ var R = {
   links: function(s) {
     return '<div class="bn-grid">' + (s.items || []).map(function(it) {
       var u = it.empty ? '' : imgUrl(it.img), href = it.empty ? '' : linkUrl(it.link);
-      var inner = u ? '<img src="' + u + '" alt=""' + objPos(it) + '>' : '<span style="font-size:8px">' + (it.empty ? 'EMPTY SLOT' : '배너 이미지') + '</span>';
+      var inner = u ? '<span class="bn-clip"><img src="' + u + '" alt=""' + objPos(it) + '></span>' : '<span style="font-size:8px">' + (it.empty ? 'EMPTY SLOT' : '배너 이미지') + '</span>';
       if (u && href) inner = '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + inner + '</a>';
       return '<div class="bn-slot"' + (it.empty ? ' style="opacity:.4"' : '') + '><div class="bn-frame' + (u ? ' has-img' : '') + '">' + inner + '</div>' +
         (!it.empty && it.name ? '<div class="bn-who"><b>' + esc(it.name) + '</b></div>' : '') +
@@ -587,9 +588,13 @@ var R = {
   }
 };
 function posNum(v) { v = parseFloat(v); return isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : 50; }
+function zoomNum(v) { v = parseFloat(v); return isFinite(v) ? Math.max(100, Math.min(300, Math.round(v))) : 100; }
+function posCss(o) {
+  var x = posNum(o.px), y = posNum(o.py), z = zoomNum(o.pz);
+  return 'object-position:' + x + '% ' + y + '%' + (z > 100 ? ';transform:scale(' + z / 100 + ');transform-origin:' + x + '% ' + y + '%' : '');
+}
 function objPos(o) {
-  var x = posNum(o.px), y = posNum(o.py);
-  return x === 50 && y === 50 ? '' : ' style="object-position:' + x + '% ' + y + '%"';
+  return posNum(o.px) === 50 && posNum(o.py) === 50 && zoomNum(o.pz) === 100 ? '' : ' style="' + posCss(o) + '"';
 }
 function shareUrl(v) {
   v = String(v || '').trim();
@@ -986,11 +991,19 @@ function readImg(f, maxW, ratio, cb) {
 }
 function fPos(b, obj) {
   var box = el('div', 'ed-f ed-live'), s = el('span'), fr = el('div', 'ed-pos'), im = el('img'), row = el('div', 'ed-posbar'), reset = el('button', 'ed-btn'), n = el('div', 'ed-note');
-  s.textContent = '배너 위치 (사진을 손가락·마우스로 끌어서 맞춰요)';
-  reset.type = 'button'; reset.textContent = '가운데로';
-  fr.appendChild(im); row.appendChild(reset); row.appendChild(n);
-  box.appendChild(s); box.appendChild(fr); box.appendChild(row); b.appendChild(box);
-  function apply() { im.style.objectPosition = posNum(obj.px) + '% ' + posNum(obj.py) + '%'; n.textContent = '가로 ' + posNum(obj.px) + '% · 세로 ' + posNum(obj.py) + '%'; }
+  var zrow = el('label', 'ed-posbar'), zl = el('span', 'ed-note'), zin = el('input', 'ed-zoom');
+  s.textContent = '배너 위치 (확대한 뒤 사진을 손가락·마우스로 끌어서 맞춰요)';
+  reset.type = 'button'; reset.textContent = '처음대로';
+  zin.type = 'range'; zin.min = 100; zin.max = 300; zin.step = 5;
+  fr.appendChild(im); zrow.appendChild(zl); zrow.appendChild(zin); row.appendChild(reset); row.appendChild(n);
+  box.appendChild(s); box.appendChild(fr); box.appendChild(zrow); box.appendChild(row); b.appendChild(box);
+  function apply() {
+    im.style.cssText = posCss(obj);
+    zin.value = zoomNum(obj.pz);
+    zl.textContent = '확대 ' + zoomNum(obj.pz) + '%';
+    n.textContent = '가로 ' + posNum(obj.px) + '% · 세로 ' + posNum(obj.py) + '%';
+  }
+  zin.addEventListener('input', function() { obj.pz = zoomNum(zin.value); apply(); soft(); });
   box._upd = function() {
     var u = imgUrl(obj.img);
     box.style.display = u ? '' : 'none';
@@ -1000,15 +1013,16 @@ function fPos(b, obj) {
   var st0 = null;
   function start(x, y) {
     if (!im.naturalWidth) return false;
-    var fw = fr.clientWidth, fh = fr.clientHeight, k = Math.max(fw / im.naturalWidth, fh / im.naturalHeight);
-    st0 = { x: x, y: y, px: posNum(obj.px), py: posNum(obj.py), ox: im.naturalWidth * k - fw, oy: im.naturalHeight * k - fh };
+    var fw = fr.clientWidth, fh = fr.clientHeight, k = Math.max(fw / im.naturalWidth, fh / im.naturalHeight), z = zoomNum(obj.pz) / 100;
+    st0 = { x: x, y: y, px: posNum(obj.px), py: posNum(obj.py),
+      ox: z * (im.naturalWidth * k - fw) + (z - 1) * fw, oy: z * (im.naturalHeight * k - fh) + (z - 1) * fh };
     fr.classList.add('drag');
     return true;
   }
   function move(x, y) {
     if (!st0) return;
-    if (st0.ox > 1) obj.px = posNum(st0.px - (x - st0.x) / st0.ox * 100);
-    if (st0.oy > 1) obj.py = posNum(st0.py - (y - st0.y) / st0.oy * 100);
+    if (st0.ox > 4) obj.px = posNum(st0.px - (x - st0.x) / st0.ox * 100);
+    if (st0.oy > 4) obj.py = posNum(st0.py - (y - st0.y) / st0.oy * 100);
     apply(); soft();
   }
   function end() { st0 = null; fr.classList.remove('drag'); }
@@ -1030,7 +1044,7 @@ function fPos(b, obj) {
   fr.addEventListener('pointermove', function(e) { if (e.pointerType !== 'touch') move(e.clientX, e.clientY); });
   fr.addEventListener('pointerup', function(e) { if (e.pointerType !== 'touch') end(); });
   fr.addEventListener('pointercancel', function(e) { if (e.pointerType !== 'touch') end(); });
-  reset.addEventListener('click', function() { obj.px = 50; obj.py = 50; apply(); soft(); });
+  reset.addEventListener('click', function() { obj.px = 50; obj.py = 50; obj.pz = 100; apply(); soft(); });
   box._upd();
 }
 function sub(b, txt) { var d = el('div', 'ed-sub'); d.textContent = txt; b.appendChild(d); }
