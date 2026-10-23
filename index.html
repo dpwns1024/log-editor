@@ -998,24 +998,38 @@ function fPos(b, obj) {
     apply();
   };
   var st0 = null;
-  fr.addEventListener('pointerdown', function(e) {
-    if (!im.naturalWidth) return;
+  function start(x, y) {
+    if (!im.naturalWidth) return false;
     var fw = fr.clientWidth, fh = fr.clientHeight, k = Math.max(fw / im.naturalWidth, fh / im.naturalHeight);
-    st0 = { x: e.clientX, y: e.clientY, px: posNum(obj.px), py: posNum(obj.py), ox: im.naturalWidth * k - fw, oy: im.naturalHeight * k - fh };
+    st0 = { x: x, y: y, px: posNum(obj.px), py: posNum(obj.py), ox: im.naturalWidth * k - fw, oy: im.naturalHeight * k - fh };
     fr.classList.add('drag');
+    return true;
+  }
+  function move(x, y) {
+    if (!st0) return;
+    if (st0.ox > 1) obj.px = posNum(st0.px - (x - st0.x) / st0.ox * 100);
+    if (st0.oy > 1) obj.py = posNum(st0.py - (y - st0.y) / st0.oy * 100);
+    apply(); soft();
+  }
+  function end() { st0 = null; fr.classList.remove('drag'); }
+  fr.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 1 && start(e.touches[0].clientX, e.touches[0].clientY)) e.preventDefault();
+  }, { passive: false });
+  fr.addEventListener('touchmove', function(e) {
+    if (!st0) return;
+    e.preventDefault();
+    move(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+  fr.addEventListener('touchend', end);
+  fr.addEventListener('touchcancel', end);
+  fr.addEventListener('pointerdown', function(e) {
+    if (e.pointerType === 'touch' || !start(e.clientX, e.clientY)) return;
     fr.setPointerCapture(e.pointerId);
     e.preventDefault();
   });
-  fr.addEventListener('pointermove', function(e) {
-    if (!st0) return;
-    if (st0.ox > 1) obj.px = Math.max(0, Math.min(100, st0.px - (e.clientX - st0.x) / st0.ox * 100));
-    if (st0.oy > 1) obj.py = Math.max(0, Math.min(100, st0.py - (e.clientY - st0.y) / st0.oy * 100));
-    obj.px = posNum(obj.px); obj.py = posNum(obj.py);
-    apply(); soft();
-  });
-  function end() { st0 = null; fr.classList.remove('drag'); }
-  fr.addEventListener('pointerup', end);
-  fr.addEventListener('pointercancel', end);
+  fr.addEventListener('pointermove', function(e) { if (e.pointerType !== 'touch') move(e.clientX, e.clientY); });
+  fr.addEventListener('pointerup', function(e) { if (e.pointerType !== 'touch') end(); });
+  fr.addEventListener('pointercancel', function(e) { if (e.pointerType !== 'touch') end(); });
   reset.addEventListener('click', function() { obj.px = 50; obj.py = 50; apply(); soft(); });
   box._upd();
 }
