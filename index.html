@@ -183,16 +183,17 @@ body{
 .bn-frame::before{left:-1px;top:-1px;border-width:1px 0 0 1px}
 .bn-frame::after{right:-1px;bottom:-1px;border-width:0 1px 1px 0}
 .bn-frame span{font:400 9px/1 'JetBrains Mono',monospace;letter-spacing:.24em;color:var(--dim)}
-.bn-code{position:relative;border:1px solid var(--ln)}
 .bn-code pre{padding:12px 14px;font:400 11px/1.8 'JetBrains Mono',monospace;color:#8a9bb0;white-space:pre;overflow-x:auto;scrollbar-width:thin}
 .btn{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px;border:1px solid var(--ln2);background:rgba(255,255,255,.02);font:400 9px/1 'JetBrains Mono',monospace;letter-spacing:.26em;color:var(--tx);cursor:pointer;transition:all .25s;position:relative}
 .btn:hover{border-color:rgba(var(--acr),.6);color:#fff;box-shadow:0 0 20px -6px rgba(var(--acr),.5)}
 .btn::before,.btn::after{content:'';position:absolute;width:5px;height:5px;border-color:var(--ac);border-style:solid}
 .btn::before{left:-1px;top:-1px;border-width:1px 0 0 1px}
 .btn::after{right:-1px;bottom:-1px;border-width:0 1px 1px 0}
-.bn-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.bn-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:480px){.bn-grid{grid-template-columns:repeat(2,1fr)}}
 @media(min-width:640px){.bn-grid{grid-template-columns:repeat(3,1fr)}}
-.bn-slot{border:1px solid var(--ln);padding:12px}
+.bn-slot{border:1px solid var(--ln);padding:12px;min-width:0;overflow:hidden}
+.bn-code{position:relative;border:1px solid var(--ln);overflow:hidden}
 .bn-who{display:flex;justify-content:space-between;margin-top:10px;font:400 8.5px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:var(--dim)}
 .bn-who b{font:400 11px/1 'Noto Sans KR',sans-serif;color:var(--tx)}
 
