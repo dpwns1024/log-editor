@@ -576,10 +576,8 @@ var R = {
 function shareUrl(v) {
   v = String(v || '').trim();
   if (!/^https?:\/\//i.test(v)) return '';
-  var m = v.match(/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/([^/]+)\/o\/(eveden|ohome)%2F([A-Za-z0-9._-]+)(\?|$)/);
-  var short = m && { 'log-editor.firebasestorage.app/eveden': '/b/', 'hong-daf0d.firebasestorage.app/ohome': '/e/' }[m[1] + '/' + m[2]];
-  if (short && /^https?:$/.test(location.protocol) && !/\.github\.io$/.test(location.hostname)) return location.origin + short + m[3];
-  return v;
+  var m = v.match(/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/hong-daf0d\.firebasestorage\.app\/o\/ohome%2F([A-Za-z0-9._-]{1,80})(\?|$)/);
+  return m ? 'https://eveden.vercel.app/e/' + m[1] : v;
 }
 function renderSec(s, room) {
   var r = R[s.type];

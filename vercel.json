@@ -1,6 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/b/:file", "destination": "https://firebasestorage.googleapis.com/v0/b/log-editor.firebasestorage.app/o/eveden%2F:file?alt=media" },
-    { "source": "/e/:file", "destination": "https://firebasestorage.googleapis.com/v0/b/hong-daf0d.firebasestorage.app/o/ohome%2F:file?alt=media" }
-  ]
-}
