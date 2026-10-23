@@ -341,7 +341,8 @@ select.ed-in{padding-right:38px;background:#03050a url("data:image/svg+xml,%3Csv
 <div id="ed" role="dialog" aria-label="사이트 고치기">
   <div class="ed-pn">
     <div class="ed-ttl">사이트 고치기</div>
-    <div class="ed-meta"><button type="button" onclick="edLogout()">로그아웃</button></div>
+    <div class="ed-meta"><button type="button" onclick="edBackups()">이전 저장본에서 되돌리기</button><button type="button" onclick="edLogout()">로그아웃</button></div>
+    <div id="ed-bak"></div>
     <div id="ed-rooms"></div>
     <div class="ed-bar">
       <span id="ed-st"></span>
@@ -430,6 +431,8 @@ select.ed-in{padding-right:38px;background:#03050a url("data:image/svg+xml,%3Csv
 </script>
 <script>
 var DATA = JSON.parse(document.getElementById('site-data').textContent);
+var DEFAULT_ROOMS = JSON.stringify(DATA.rooms);
+var LOAD = 'pending', LOAD_ERR = '';
 var _t = [], _cur = null;
 var CMD_SPD = 26, ECHO_SPD = 13;
 
@@ -728,6 +731,8 @@ function newSec(type) {
 }
 
 function openEditor() {
+  if (LOAD === 'pending') { showToast2('서버 내용 불러오는 중 · 잠시 후 다시 눌러 주세요'); return; }
+  if (LOAD === 'fail') { alert('서버에서 저장된 내용을 불러오지 못했어요 (' + LOAD_ERR + ').\n지금 편집하면 기본 내용으로 덮어쓸 수 있어서 편집을 막았어요. 새로고침해 보세요.'); return; }
   try {
     var raw = localStorage.getItem('ev_draft'), x = raw && JSON.parse(raw), dd = x && (x.d || x);
     if (dd && JSON.stringify(dd) !== JSON.stringify(DATA)) {
@@ -747,6 +752,33 @@ function closeEditor() {
   $('ed').classList.remove('show');
   document.body.style.overflow = '';
   if (ED.dirty) showToast2('저장 안 됨 · 임시 보관 중');
+}
+function edBackups() {
+  var box = $('ed-bak');
+  box.innerHTML = '';
+  var note = el('div', 'ed-note');
+  note.textContent = '불러오는 중...';
+  box.appendChild(note);
+  db.collection('site').get().then(function(snap) {
+    var list = snap.docs.filter(function(d) { return d.id.indexOf(SITE_DOC + '-bak-') === 0 && d.data().json; })
+      .sort(function(a, b) { return b.id.localeCompare(a.id); });
+    note.textContent = list.length ? '되돌릴 저장본을 고르세요. 고른 뒤 「저장」을 눌러야 사이트에 반영돼요.' : '아직 저장본이 없어요. 다음 저장부터 자동으로 남아요.';
+    list.slice(0, 30).forEach(function(d) {
+      var t = new Date(+d.id.split('-bak-')[1]), r = el('div', 'ed-row'), lb = el('span', 'ed-lbl'), b = el('button', 'ed-btn');
+      var rooms = []; try { rooms = JSON.parse(d.data().json).rooms.map(function(x) { return x.name; }); } catch (e) {}
+      lb.textContent = t.getFullYear() + '.' + pad(t.getMonth() + 1) + '.' + pad(t.getDate()) + ' ' + pad(t.getHours()) + ':' + pad(t.getMinutes()) + ' · ' + rooms.join(' / ');
+      b.type = 'button'; b.textContent = '되돌리기';
+      b.addEventListener('click', function() {
+        if (!confirm(lb.textContent + '\n이 저장본으로 되돌릴까요?')) return;
+        DATA = JSON.parse(d.data().json); ED.open.clear();
+        box.innerHTML = '';
+        loadImgs().then(renderSite);
+        hard();
+        edStatus('되돌림 · 「저장」을 눌러야 사이트에 반영돼요');
+      });
+      r.appendChild(lb); r.appendChild(b); box.appendChild(r);
+    });
+  }).catch(function(e) { note.textContent = '불러오기 실패 (' + ((e && e.code) || '') + ')'; });
 }
 function edLogout() { fbAuth.signOut(); closeEditor(); showToast2('로그아웃'); }
 
@@ -1045,10 +1077,17 @@ function loadImgs() {
 async function saveDB() {
   var u = fbAuth.currentUser;
   if (!(await isOwner(u))) { edStatus('✕ 로그인이 풀렸어요 · 닫고 다시 열어 주세요'); return; }
+  if (LOAD !== 'ok' && LOAD !== 'empty') { edStatus('✕ 서버 내용을 못 불러온 상태라 저장을 막았어요'); return; }
+  if (JSON.stringify(DATA.rooms) === DEFAULT_ROOMS && LOAD === 'ok' &&
+      !confirm('지금 내용이 처음 기본 내용과 똑같아요. 이대로 저장하면 서버 내용이 기본 내용으로 바뀌어요. 정말 저장할까요?')) return;
   var btn = $('ed-save'), prev = DATA.updated;
   btn.disabled = true;
   edStatus('저장 중...');
   try {
+    var cur = await db.collection('site').doc(SITE_DOC).get();
+    if (cur.exists && cur.data().json) {
+      await db.collection('site').doc(SITE_DOC + '-bak-' + Date.now()).set({ json: cur.data().json, at: firebase.firestore.FieldValue.serverTimestamp() });
+    }
     var used = JSON.stringify(DATA);
     await Promise.all(Object.keys(PENDING).filter(function(id) { return used.indexOf('img:' + id) >= 0; }).map(function(id) {
       return db.collection('siteimg').doc(id).set({ d: IMG[id] });
@@ -1056,6 +1095,7 @@ async function saveDB() {
     PENDING = {};
     DATA.updated = today();
     await db.collection('site').doc(SITE_DOC).set({ json: JSON.stringify(DATA), at: firebase.firestore.FieldValue.serverTimestamp() });
+    LOAD = 'ok';
     ED.dirty = false;
     try { localStorage.removeItem('ev_draft'); } catch (e) {}
     renderSite();
@@ -1116,12 +1156,13 @@ document.addEventListener('keydown', function(e) {
 try { ['ev_r-info', 'ev_r-list', 'ev_r-banner', 'ev_pin', 'ev_gh_token'].forEach(function(k) { localStorage.removeItem(k); }); } catch (e) {}
 var _booted = false;
 function boot() { if (!_booted) { _booted = true; renderSite(); } }
-if (!db) boot();
+if (!db) { LOAD = 'fail'; boot(); }
 else {
   setTimeout(boot, 3000);
   db.collection('site').doc(SITE_DOC).get().then(function(d) {
-    if (d.exists && d.data().json && !$('ed').classList.contains('show')) DATA = JSON.parse(d.data().json);
-  }).catch(function() {}).then(function() {
+    if (d.exists && d.data().json) { DATA = JSON.parse(d.data().json); LOAD = 'ok'; }
+    else LOAD = 'empty';
+  }).catch(function(e) { LOAD = 'fail'; LOAD_ERR = (e && e.code) || ''; }).then(function() {
     if (_booted) renderSite(); else boot();
     return loadImgs();
   }).then(renderSite);
