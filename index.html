@@ -164,15 +164,15 @@ body{
 .ctg.ok{border-color:rgba(var(--okr),.35);color:var(--ok)}
 
 /* list — file cards */
-.fcards{display:flex;flex-direction:column;gap:12px}
-.fcard{display:grid;grid-template-columns:80px 1fr;gap:16px;padding:16px;border:1px solid var(--ln);background:var(--pn);position:relative;overflow:hidden;transition:border-color .3s}
+.fcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:12px}
+.fcard{display:grid;grid-template-columns:80px minmax(0,1fr);align-items:start;gap:16px;padding:16px 44px 16px 16px;border:1px solid var(--ln);background:var(--pn);position:relative;overflow:hidden;transition:border-color .3s}
 .fcard:hover{border-color:rgba(var(--acr),.3)}
 .fcard::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.04) 50%,transparent 70%);transform:translateX(-100%);transition:transform .8s;pointer-events:none}
 .fcard:hover::after{transform:translateX(100%)}
 .fph{aspect-ratio:3/4;border:1px solid var(--ln2);background:radial-gradient(circle at 50% 36%,rgba(190,208,228,.14) 0 15%,transparent 15.5%),radial-gradient(ellipse at 50% 100%,rgba(190,208,228,.12) 0 38%,transparent 38.5%),#0b1016}
 .fph::after{content:'';display:block;margin:6px;border:1px solid rgba(255,255,255,.06);height:calc(100% - 12px)}
 .fno{font:400 8.5px/1 'JetBrains Mono',monospace;letter-spacing:.22em;color:var(--dim)}
-.fnm{display:block;margin-top:10px;font:300 24px/1.1 'Jost','Noto Sans KR',sans-serif;letter-spacing:.2em;color:#fff}
+.fnm{display:block;margin-top:10px;font:300 22px/1.25 'Jost','Noto Sans KR',sans-serif;letter-spacing:.14em;color:#fff;word-break:keep-all;overflow-wrap:anywhere}
 .fcl{display:block;margin-top:8px;font:400 11px/1.5 'Noto Sans KR',sans-serif;letter-spacing:.1em;color:var(--mu)}
 .fst{display:inline-block;margin-top:12px;padding:4px 8px;border:1px solid rgba(var(--okr),.35);background:rgba(var(--okr),.06);font:400 8px/1 'JetBrains Mono',monospace;letter-spacing:.2em;color:var(--ok)}
 .fst.hold{border-color:var(--ln2);background:transparent;color:var(--mu)}
@@ -181,7 +181,12 @@ body{
 /* index */
 .idx2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:560px){.idx2{grid-template-columns:1fr}}
-.idx-pn{border:1px solid var(--ln);background:var(--pn)}
+.idx-pn{min-width:0;border:1px solid var(--ln);background:var(--pn)}
+.idx-pn:last-child:nth-child(odd){grid-column:1/-1}
+.idx-list{display:grid;grid-template-columns:1fr;overflow:hidden}
+.idx-pn:last-child:nth-child(odd) .idx-list{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.idx-list .idx-item{margin:0 -1px -1px 0;border-right:1px dashed var(--ln)}
+.idx-list .idx-item:last-child{border-bottom:1px dashed var(--ln)}
 .idx-hdr{display:flex;align-items:center;gap:10px;height:34px;padding:0 14px;border-bottom:1px solid var(--ln);font:400 9px/1 'JetBrains Mono',monospace;letter-spacing:.22em;color:var(--mu)}
 .idx-hdr b{font-weight:400;color:var(--ac)}
 .idx-hdr i{flex:1;height:1px;background:linear-gradient(90deg,var(--ln2),transparent)}
@@ -301,7 +306,7 @@ select.ed-in{padding-right:38px;background:#03050a url("data:image/svg+xml,%3Csv
   .fk,.gk{width:104px;font-size:9px}
   .fhd small{display:none}
   .fbody{padding:16px 14px 18px}
-  .fcard{grid-template-columns:68px 1fr;gap:12px;padding:14px}
+  .fcard{grid-template-columns:68px minmax(0,1fr);gap:12px;padding:14px 40px 14px 14px}
   .fnm{font-size:20px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
@@ -561,10 +566,10 @@ var R = {
   },
   index: function(s) {
     return '<div class="idx2">' + (s.panels || []).map(function(p) {
-      return '<div class="idx-pn"><div class="idx-hdr"><b>' + esc(p.key) + '</b> ' + esc(p.title) + '<i></i></div>' +
+      return '<div class="idx-pn"><div class="idx-hdr"><b>' + esc(p.key) + '</b> ' + esc(p.title) + '<i></i></div><div class="idx-list">' +
         (p.items || []).map(function(it) {
           return '<div class="idx-item"><span>' + esc(it.no) + '</span><div><b>' + esc(it.name) + '</b>' + (it.note ? '<p>' + esc(it.note) + '</p>' : '') + '</div></div>';
-        }).join('') + '</div>';
+        }).join('') + '</div></div>';
     }).join('') + '</div>';
   },
   banner: function(s) {
