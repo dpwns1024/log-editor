@@ -200,8 +200,10 @@ body{
 .btn{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 13px;border:none;background:rgba(255,255,255,.02);font:400 9px/1 'JetBrains Mono',monospace;letter-spacing:.26em;color:var(--tx);cursor:pointer;transition:all .25s;position:relative}
 .btn:hover{--fr:rgba(var(--acr),.6);color:#fff;box-shadow:0 0 20px -6px rgba(var(--acr),.5)}
 .btn{--cl:5px}
-.btn.sm{height:20px;padding:0 8px;font-size:7.5px;letter-spacing:.2em;--cl:4px}
-.frow .btn.sm{align-self:center;flex:none;margin-left:2px}
+.btn.sm{height:20px;padding:0 8px 0 calc(8px + .2em);font-size:7.5px;letter-spacing:.2em;--cl:4px}
+.frow .btn.sm,.frow .cp-sp{flex:none;align-self:center;width:46px;height:18px;margin:-1px 0 -1px 2px;justify-content:center;padding:0 0 0 .2em}
+.bn-head{display:flex;align-items:center;gap:12px;max-width:400px;margin-bottom:14px}
+.bn-head>span{flex:1;min-width:0;font:400 9px/1 'JetBrains Mono',monospace;letter-spacing:.26em;color:var(--mu)}
 .bn-grid{display:grid;grid-template-columns:1fr;gap:12px}
 @media(min-width:480px){.bn-grid{grid-template-columns:repeat(2,1fr)}}
 .bn-slot{min-width:0}
@@ -517,10 +519,12 @@ var DOTS = new Array(160).join('·');
 var PMARK = { like:'+', mid:'~', ng:'✕' };
 var R = {
   fields: function(s) {
+    function cpOf(it) { return /^(link|url)$/i.test(String(it.k || '').trim()) ? linkUrl(it.v) : ''; }
+    var anyCp = (s.items || []).some(cpOf);
     return '<div class="fields">' + (s.items || []).map(function(it) {
-      var cp = /^(link|url)$/i.test(String(it.k || '').trim()) ? linkUrl(it.v) : '';
+      var cp = cpOf(it);
       return '<div class="frow"><span class="fk">' + esc(it.k) + '</span><span class="fdots">' + DOTS + '</span><span class="fv' + (TONES[it.tone] ? ' ' + it.tone : '') + '">' + esc(it.v) + '</span>' +
-        (cp ? '<button class="btn sm" data-u="' + esc(cp) + '" onclick="copyUrl(this)">COPY</button>' : '') + '</div>';
+        (cp ? '<button class="btn sm" data-u="' + esc(cp) + '" onclick="copyUrl(this)">COPY</button>' : anyCp ? '<span class="cp-sp"></span>' : '') + '</div>';
     }).join('') + '</div>';
   },
   gauges: function(s) {
@@ -569,8 +573,8 @@ var R = {
     var u = imgUrl(s.img), href = linkUrl(s.link), pub = shareUrl(s.img);
     var img = u ? '<span class="bn-clip"><img src="' + u + '" alt=""' + objPos(s) + '></span>' : '<span>BANNER · 이미지 준비 중</span>';
     if (u && href) img = '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + img + '</a>';
-    return '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">' +
-      '<span style="font:400 9px/1 \'JetBrains Mono\',monospace;letter-spacing:.26em;color:var(--mu)">' + esc(s.label) + '</span>' +
+    return '<div class="bn-head">' +
+      '<span>' + esc(s.label) + '</span>' +
       '<button class="btn sm" data-u="' + esc(pub) + '" onclick="copyUrl(this)">COPY URL</button></div>' +
       '<div class="bn-frame' + (u ? ' has-img' : '') + '">' + img + '</div>';
   },
